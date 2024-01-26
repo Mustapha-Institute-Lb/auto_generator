@@ -1,0 +1,4 @@
+.venv/
+codebase/__pycache__/
+__pycache__/
+generator_temporary/

@@ -1,0 +1,6 @@
+imageio-ffmpeg==0.4.9
+cv==1.0.0
+pydub==0.25.1
+moviepy==1.0.3
+argparse==1.4.0
+urllib3==1.26.7 # Downgrade required for python 3.7
