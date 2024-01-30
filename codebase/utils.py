@@ -28,7 +28,7 @@ def download_file(url, filename, debug=False):
         if debug: print(f"Requested resource: {url}")
         return False
 
-def remove_directory(path, debug):
+def remove_directory(path, debug=False):
     try:
         for file_or_dir in os.listdir(path):
             full_path = os.path.join(path, file_or_dir)

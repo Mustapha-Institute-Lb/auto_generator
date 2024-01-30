@@ -25,4 +25,4 @@
 
 * **fetch_audio**:  It containes API utilities to fetch ayat audio from islamic network and download them.
 
-* **process_video**: It containes utilities to process videos and combine video parts: video, audio, and text.
+* **ffmpeg_utils**: It containes utilities to process videos and combine video parts: video, audio, and text.

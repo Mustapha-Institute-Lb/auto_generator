@@ -1,40 +1,12 @@
-import argparse, os
-from codebase import fetch_audio, fetch_video
-from utils import remove_directory
+import argparse
+from datetime import datetime
+from codebase import fetch_audio
+from codebase import pipeline
+
+LOG_FILE= "./log.txt"
 
 def generate_video(reciter, surah, start, end, debug):
-    
-    # video settings
-    video_keyword = "landscapes"
-    min_width = 1080
-    min_height = 1920
-
-    # create a temp directory
-    temp_dir = os.path.join(os.getcwd(), "generator_temporary")
-    if(os.path.exists(temp_dir)):
-        remove_directory(temp_dir, debug)
-    audio_dir = "mp3"
-    video_dir = "mp4"
-    os.mkdir(temp_dir)
-
-    # fetch recitations
-    recitations = fetch_audio.get_recitations(reciter, surah, start, end, debug)
-
-    # download recitations
-    recitations_files = fetch_audio.download_recitations([r["audio_link"] for r in recitations],\
-                                                          os.path.join(temp_dir, audio_dir),\
-                                                              debug)
-
-    # recitations durations
-    recitations_durations = fetch_audio.recitations_durations(recitations_files, debug)
-
-    # fetch videos
-    min_duration = sum(recitations_durations)
-    videos = fetch_video.get_videos_conditioned(video_keyword, min_duration, min_width, min_height, debug)
-
-    # download videos
-    videos_links = [v["link"] for v in videos]
-    videos_files = fetch_video.download_videos(videos_links, os.path.join(temp_dir, video_dir), debug)
+    pipeline.generate_video(reciter, surah, start, end, debug)
 
 def reciters_list():
     reciters = fetch_audio.get_reciters()
@@ -57,6 +29,9 @@ def main():
     parser.add_argument('--debug', action='store_true', help='Show the output of execution (default is False)')
 
     args = parser.parse_args()
+
+    with open(LOG_FILE, "a") as f:
+        f.write(  "\n#####################\n" + str(datetime.now()) + "\n#####################\n")
 
     if args.mode == 'help':
         parser.print_help()

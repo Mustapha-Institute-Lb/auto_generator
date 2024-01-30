@@ -1,5 +1,5 @@
 import requests, json, os
-from utils import download_file
+from codebase.utils import download_file
 import warnings
 warnings.filterwarnings("ignore", category=RuntimeWarning, module="pydub")
 from pydub import AudioSegment
@@ -10,13 +10,17 @@ class FetchError(Exception):
     pass
 
 def get_reciters():
-  """ A function to fetch all reciters names and ids from islamic nework api.
-  :return: A list of dictionaries that containes the following: [id, name, code]
-  :raises Error:
-  .. note:: 
-  Example usage:
-  >>> get_reciters()
-  Result: [{'id': 1,'name': 'عبد الباسط عبد الصمد المرتل', 'code': 'ar.abdulbasitmurattal'}, { 'id':2, 'name': 'عبد الله بصفر', 'code': 'ar.abdullahbasfar'}, ...]
+  """
+    Fetch all reciters' names and ids from the Islamic Network API.
+
+    Returns:
+        A list of dictionaries containing the following keys: ['id', 'name', 'code'].
+
+    Example:
+        # Fetch all reciters' names and ids
+        get_reciters()
+        Result: [{'id': 1, 'name': 'عبد الباسط عبد الصمد المرتل', 'code': 'ar.abdulbasitmurattal'},
+                 {'id': 2, 'name': 'عبد الله بصفر', 'code': 'ar.abdullahbasfar'}, ...]
   """
   response = requests.get("https://api.alquran.cloud/v1/edition/format/audio")
   content = json.loads(response.content.decode('utf8').replace("'", '"'))
@@ -29,16 +33,22 @@ def get_reciters():
   return reciters
 
 def get_surahs():
-  """ A function to fetch all surah names and ids from islamic nework api.
-  :return: A list of dictionaries that containes the following: [id, name, aya_base, n_aya]
-           aya_base is the number of the first aya of the surah out of all quran ayat numbers
-           n_aya is teh number of ayat in the surah
-  :raises Error:
-  .. note:: 
-  Example usage:
-  >>> get_surahs()
-  Result: [{'id': 1, 'name': 'سُورَةُ ٱلْفَاتِحَةِ', 'aya_base': 0, 'n_aya': 7}, {'id': 2, 'name': 'سُورَةُ البَقَرَةِ', 'aya_base': 7, 'n_aya': 286}, ..]
   """
+    Fetch all surah names and ids from the Islamic Network API.
+
+    Returns:
+        A list of dictionaries containing the following keys: ['id', 'name', 'aya_base', 'n_aya'].
+        - 'id': Surah ID.
+        - 'name': Surah name.
+        - 'aya_base': The number of the first verse of the surah out of all Quran verses.
+        - 'n_aya': The number of verses in the surah.
+
+    Example:
+        # Fetch all surah names and ids
+        get_surahs()
+        Result: [{'id': 1, 'name': 'سُورَةُ ٱلْفَاتِحَةِ', 'aya_base': 0, 'n_aya': 7},
+                 {'id': 2, 'name': 'سُورَةُ البَقَرَةِ', 'aya_base': 7, 'n_aya': 286}, ...]
+    """
   response = requests.get("https://api.alquran.cloud/v1/meta")
   content = json.loads(response.content)
   surahs = []
@@ -51,23 +61,34 @@ def get_surahs():
   return surahs
 
 def get_recitations(reciter_number, surah_number, start, end, debug=False):
-  """ A function to fetch ayat recitations  from islamic nework api.
-  :param reciter_number: The id of the reciter approx. 20 reciters can be fetched using get_reciters()
-  :param surah_number: The id of the surah
-  :param start: The starting aya number of the required recitations
-  :param end: The last aya number of the required recitations
-  :return: A list of dictionaries that containes the following: [text, audio_link]
-           text is aya text in arabic
-           audio_link is the link to the audio resource downloadable using curl
-  :raises Error:
-  .. note:: 
-  Example usage:
-  >>> get_recitations(1, 1, 1, 2)
-  Result: [{'text': 'بِسۡمِ ٱللَّهِ ٱلرَّحۡمَـٰنِ ٱلرَّحِیمِ\n', 'audio_link': 'https://cdn.islamic.network/.../1.mp3'}, ...]
+  """
+  Fetch ayat recitations from the Islamic Network API.
+
+  Parameters:
+      reciter_number (int): The id of the reciter. Approximately 20 reciters can be fetched using get_reciters().
+      surah_number (int): The id of the surah.
+      start (int): The starting aya number of the required recitations.
+      end (int): The last aya number of the required recitations.
+
+  Returns:
+      A list of dictionaries containing the following keys: ['text', 'audio_link'].
+      - 'text': Aya text in Arabic.
+      - 'audio_link': The link to the audio resource downloadable using curl.
+
+  Raises:
+      Error: If there is an issue fetching recitations.
+
+  Example:
+      get_recitations(1, 1, 1, 2)
+      Result: [{'text': 'بِسۡمِ ٱللَّهِ ٱلرَّحۡمَـٰنِ ٱلرَّحِیمِ\n',
+                'audio_link': 'https://cdn.islamic.network/.../1.mp3'}, ...]
   """
 
+
   # validate surah and reciter id's
+  if(debug): print(f"Getting surahs data")
   surahs = get_surahs()
+  if(debug): print(f"Getting reciters data")
   reciter = [reciter["code"] for reciter in get_reciters() if reciter["id"] == reciter_number][0]
   if not reciter :
     raise FetchError("Reciter id doesnt exist")
@@ -88,9 +109,12 @@ def get_recitations(reciter_number, surah_number, start, end, debug=False):
   for n in range(start, end+1):
     required_ayat+= [ n + surah["aya_base"] ]
 
+  # remove bismillah
+  remove_bismillah = True if((not surah==1) and (start==1)) else False
+
   # fetch ayat
   recitations = []
-  for aya in required_ayat:
+  for i, aya in enumerate(required_ayat):
     audio_link = "https://cdn.islamic.network/quran/audio/192/" + str(reciter) + "/" + str(aya) + ".mp3"
     if(debug): print(f"Getting recitation {audio_link}")
     text_response = requests.get("https://api.alquran.cloud/v1/ayah/" + str(aya))
@@ -98,21 +122,30 @@ def get_recitations(reciter_number, surah_number, start, end, debug=False):
       text = json.loads(text_response.content.decode('utf8').replace("'", '"'))["data"]["text"]
     else:
       raise FetchError(f"Error in fetching text of aya number {str(aya)}")
-    recitations+= [{"text": text, "audio_link": audio_link}]
+    if(i==0 and remove_bismillah):
+      text = text.replace("بِسۡمِ ٱللَّهِ ٱلرَّحۡمَـٰنِ ٱلرَّحِیمِ", "")
+    recitations+= [{"text": text.strip(), "audio_link": audio_link}]
 
   return recitations
 
 def download_recitations(recitations, destination, debug=False):
-  """ A function to download audios of several recitations to a certain destination using curl.
-  :param videos: Array of links for download
-  :param destination: The designated destination
-  :param debug: A param to debug the output
-  :return: An array of the downloaded filenames
-  .. note:: 
-  Example usage:
-  >>> download_recitations([link1, linke2, ...], "./temp/mp3/")
-  Result: ["./temp/mp3/recitation_0.mp3", "./temp/mp3/recitation_1.mp3", ...]
   """
+  Download audios of several recitations to a certain destination using curl.
+
+  Parameters:
+      videos (list): Array of links for download.
+      destination (str): The designated destination.
+      debug (bool, optional): A parameter to debug the output. If True, provides more verbose output.
+                            If False (default), output is minimal.
+
+  Returns:
+      An array of the downloaded filenames.
+
+  Example:
+      download_recitations([link1, link2, ...], "./temp/mp3/")
+      Result: ["./temp/mp3/recitation_0.mp3", "./temp/mp3/recitation_1.mp3", ...]
+  """
+
   
   audios = []
 
@@ -142,7 +175,7 @@ def recitations_durations(audio_file_names, debug=False):
   """
   durations = []
   for filename in audio_file_names:
-    if(debug): print(f"Computing {filename} duration: ", end=" ")
+    if(debug): print(f"Computing {os.path.basename(filename)} duration: ", end=" ")
     if os.path.exists(filename):
       audio = AudioSegment.from_mp3(filename)
       duration_in_seconds = len(audio) / 1000.0
@@ -152,3 +185,35 @@ def recitations_durations(audio_file_names, debug=False):
       print("File doesn't exist")
       exit()
   return durations
+
+def generate_ayat_caption_file(ayat_texts, ayat_durations, destination, debug=False):
+  """
+  Write ayat text to a text file alongside the timestamp. Similar to subtitles files.
+
+  Parameters:
+      ayat_texts (list): Array of ayat Arabic text.
+      ayat_durations (list): Array of ayat recitation durations.
+      destination (str): Captions filename and path.
+
+  Returns:
+      Nothing. Writes a file to the specified destination.
+
+  Example:
+      generate_ayat_caption_file(["بسم الله الرحمن الرحيم", ...], [3.44, ...], "./temp/captions.txt")
+      Result: (Nothing)
+  """
+
+  endocding="utf-8"
+  seperator=":"
+  
+  if(not len(ayat_durations) == len(ayat_texts)):
+    raise Exception("Both ayat texts and durations arrays should be of the same size")
+  
+  file = open(destination, "w", encoding= endocding)
+  cummulative_duration= 0
+  if debug: print("Generating ayat captions file")
+  for i in range(0, len(ayat_durations)):
+    file.write(f"{cummulative_duration}{seperator}{cummulative_duration+ayat_durations[i]}{seperator}{ayat_texts[i]}\n")
+    cummulative_duration+=ayat_durations[i]
+  file.close()
+  return
