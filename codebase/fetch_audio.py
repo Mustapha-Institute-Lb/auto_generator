@@ -1,9 +1,9 @@
-import requests, json, os
+import requests, json, os, logging
 from codebase.utils import download_file
+
 import warnings
 warnings.filterwarnings("ignore", category=RuntimeWarning, module="pydub")
 from pydub import AudioSegment
-
 
 class FetchError(Exception):
     """Custom exception class."""
@@ -60,7 +60,7 @@ def get_surahs():
     id+=1
   return surahs
 
-def get_recitations(reciter_number, surah_number, start, end, debug=False):
+def get_recitations(reciter_number, surah_number, start, end):
   """
   Fetch ayat recitations from the Islamic Network API.
 
@@ -86,9 +86,9 @@ def get_recitations(reciter_number, surah_number, start, end, debug=False):
 
 
   # validate surah and reciter id's
-  if(debug): print(f"Getting surahs data")
+  logging.info(f"Getting surahs data")
   surahs = get_surahs()
-  if(debug): print(f"Getting reciters data")
+  logging.info(f"Getting reciters data")
   reciter = [reciter["code"] for reciter in get_reciters() if reciter["id"] == reciter_number][0]
   if not reciter :
     raise FetchError("Reciter id doesnt exist")
@@ -98,11 +98,17 @@ def get_recitations(reciter_number, surah_number, start, end, debug=False):
   # validate aya numbers
   surah = [surah for surah in surahs if surah["id"]==surah_number][0]
   if end > surah["n_aya"]:
-    raise Exception(f"Surah {surah['name']} only contain {surah['n_aya']} ayat. Aya number {end} was required")
+    message = f"Surah {surah['name']} only contain {surah['n_aya']} ayat. Aya number {end} was required"
+    logging.error(message)
+    raise Exception(message)
   if start < 1:
-    raise Exception(f"start can't be less than one")
+    message = f"start {start} can't be less than one"
+    logging.error(message)
+    raise Exception(message)
   if end < start:
-    raise Exception(f"end can't be less than start")
+    message= f"end {end} can't be less than start {start}"
+    logging.error(message)
+    raise Exception(message)
   
   # from aya number per surah to aya number per quran
   required_ayat= []
@@ -110,13 +116,15 @@ def get_recitations(reciter_number, surah_number, start, end, debug=False):
     required_ayat+= [ n + surah["aya_base"] ]
 
   # remove bismillah
-  remove_bismillah = True if((not surah==1) and (start==1)) else False
+  remove_bismillah = True if((not surah_number==1) and (start==1)) else False
+  logging.debug(f"Remove Basmalah: {remove_bismillah}")
+
 
   # fetch ayat
   recitations = []
   for i, aya in enumerate(required_ayat):
     audio_link = "https://cdn.islamic.network/quran/audio/192/" + str(reciter) + "/" + str(aya) + ".mp3"
-    if(debug): print(f"Getting recitation {audio_link}")
+    logging.info(f"Getting recitation {audio_link}")
     text_response = requests.get("https://api.alquran.cloud/v1/ayah/" + str(aya))
     if(text_response.status_code == 200):
       text = json.loads(text_response.content.decode('utf8').replace("'", '"'))["data"]["text"]
@@ -128,7 +136,7 @@ def get_recitations(reciter_number, surah_number, start, end, debug=False):
 
   return recitations
 
-def download_recitations(recitations, destination, debug=False):
+def download_recitations(recitations, destination):
   """
   Download audios of several recitations to a certain destination using curl.
 
@@ -154,8 +162,8 @@ def download_recitations(recitations, destination, debug=False):
 
   for i, recitation_link in enumerate(recitations):
     file_path = os.path.join(destination, "recitation_" + str(i) + ".mp3")
-    if(debug): print(f"Downloading recitation {recitation_link}")
-    succsess = download_file(recitation_link, file_path, debug)
+    logging.info(f"Downloading recitation {recitation_link}")
+    succsess = download_file(recitation_link, file_path)
     if not succsess: 
       print("Problem downloading recitation:\n\
              (1) Change reciter and ayat\n\
@@ -164,7 +172,7 @@ def download_recitations(recitations, destination, debug=False):
     audios+= [file_path]
   return audios
 
-def recitations_durations(audio_file_names, debug=False):
+def recitations_durations(audio_file_names):
   """ A function to retrieve audio durations of a list of mp3 files
   :param audio_file_names: Array of complete filenamess
   :return: An array of durations
@@ -175,18 +183,17 @@ def recitations_durations(audio_file_names, debug=False):
   """
   durations = []
   for filename in audio_file_names:
-    if(debug): print(f"Computing {os.path.basename(filename)} duration: ", end=" ")
     if os.path.exists(filename):
       audio = AudioSegment.from_mp3(filename)
       duration_in_seconds = len(audio) / 1000.0
-      if(debug): print(str(duration_in_seconds))
+      logging.info(f"Computing {os.path.basename(filename)} duration: {str(duration_in_seconds)}")
       durations += [duration_in_seconds]
     else:
       print("File doesn't exist")
       exit()
   return durations
 
-def generate_ayat_caption_file(ayat_texts, ayat_durations, destination, debug=False):
+def generate_ayat_caption_file(ayat_texts, ayat_durations, destination):
   """
   Write ayat text to a text file alongside the timestamp. Similar to subtitles files.
 
@@ -211,7 +218,7 @@ def generate_ayat_caption_file(ayat_texts, ayat_durations, destination, debug=Fa
   
   file = open(destination, "w", encoding= endocding)
   cummulative_duration= 0
-  if debug: print("Generating ayat captions file")
+  logging.info("Generating ayat captions file")
   for i in range(0, len(ayat_durations)):
     file.write(f"{cummulative_duration}{seperator}{cummulative_duration+ayat_durations[i]}{seperator}{ayat_texts[i]}\n")
     cummulative_duration+=ayat_durations[i]

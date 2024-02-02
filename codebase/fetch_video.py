@@ -1,14 +1,13 @@
-import json, os
+import json, os, logging
 from random import randint
 from codebase.utils import download_file, request_json
 
-LOG_FILE= "./log.txt"
 
 class MaintainableFetchError(Exception):
     """Custom exception class."""
     pass
 
-def get_pexeles_video(keyword, debug=False):
+def get_pexeles_video(keyword):
   """
   Fetch a video from pexels.com using a keyword.
 
@@ -41,7 +40,7 @@ def get_pexeles_video(keyword, debug=False):
   api_key = "fpKSq3NBtPzsmv82jJ2ZTDG946ILieYMpYdJx5hwVJjnti7gPCcZSTa9"
   base_query = "https://api.pexels.com/videos/search?query="
   query = base_query + keyword
-  data = request_json(query, headers= {'Authorization': api_key}, debug= debug)
+  data = request_json(query, headers= {'Authorization': api_key})
   if(not data):
     print("Problem fetching video:\n\
             (1) Check your network connection")
@@ -54,26 +53,21 @@ def get_pexeles_video(keyword, debug=False):
 
   # Get a random video from the API
   query = base_query + keyword + "&page="+ str(page) +"&per_page=" + str(per_page)
-  data = request_json(query, headers= {'Authorization': api_key}, debug= debug)
+  data = request_json(query, headers= {'Authorization': api_key})
   if(not data):
     print("Problem fetching video:\n\
             (1) Check your network connection")
     exit()
   video = data["videos"][0]
 
-  if debug:
-    print(f"Fetched video descriptor: {video['url'][:80]+ '...'}")
+  logging.info(f"Fetched video descriptor: {video['url']}")
 
   # Generate tags
   url = video['url'][:-1] if video['url'][-1]=="/" else video['url']
   video_title = url.split("/")[-1]
   tags = video_title.split("-")
 
-  if debug:
-    with open(LOG_FILE, "a") as f:
-      f.write("\n")
-      f.write(json.dumps(video, indent=2))
-      f.write("\n")
+  logging.info("\n" + json.dumps(video, indent=2) + "\n")
 
   # Get the largest "HD" file
   sizes = [v["height"] for v in video["video_files"]]
@@ -86,7 +80,7 @@ def get_pexeles_video(keyword, debug=False):
              "tags": tags, "link": video_file["link"]}
   return result
 
-def get_videos_conditioned(keyword, required_duration, blacklist, min_width=1080, min_height=1920, debug=False):
+def get_videos_conditioned(keyword, required_duration, blacklist, min_width=1080, min_height=1920):
   """
   Keep on fetching unique videos from pexels.com until their collective duration surpasses a threshold or the required duration, adhering to certain conditions.
 
@@ -117,36 +111,36 @@ def get_videos_conditioned(keyword, required_duration, blacklist, min_width=1080
   ids= []
   while(total_duration < required_duration):
     video={}
-    video = get_pexeles_video(keyword, debug)
+    video = get_pexeles_video(keyword)
 
     if video == {}:
-        if debug: print("Dismissed a non-valid video")
+        logging.info("Dismissed a non-valid video")
         continue
 
     if video["id"] in ids:
-        if debug: print("Dismissed a non-valid video, id already fetched")
+        logging.info("Dismissed a non-valid video, id already fetched")
         continue
 
     if video["width"] < min_width:
-        if debug: print(f"Dismissed a non-valid video, width {video['width']} is less than min. width {min_width}")
+        logging.info(f"Dismissed a non-valid video, width {video['width']} is less than min. width {min_width}")
         continue
 
     if video["height"] < min_height:
-        if debug: print(f"Dismissed a non-valid video, height {video['height']} is less than min. height {min_height}")
+        logging.info(f"Dismissed a non-valid video, height {video['height']} is less than min. height {min_height}")
         continue
 
     blacklisted = set(video["tags"]).intersection(set(blacklist))
     if blacklisted:
-        if debug: print(f"Dismissed a non-valid video, contains blacklisted words: ({blacklisted})")
+        logging.info(f"Dismissed a non-valid video, contains blacklisted words: ({blacklisted})")
         continue
 
-    if(debug): print(f"Fetched video link {video['link'][:80] + '...'}")
+    logging.info(f"Fetched video link {video['link']}")
     ids+= [video["id"]]
     videos+= [video]
     total_duration+= video["duration"]
   return videos
 
-def download_videos(videos_links, destination, debug=False):
+def download_videos(videos_links, destination):
   """
   Download videos to a certain destination using curl.
 
@@ -166,14 +160,14 @@ def download_videos(videos_links, destination, debug=False):
   if(not os.path.exists(destination)):
     os.mkdir(destination)
 
-  if(debug): print(f"Downloading videos {str(videos_links)[:80]+'...'}")
+  logging.info(f"Downloading videos {str(videos_links)}")
   videos_files = []
   for i, link in enumerate(videos_links):
     file_path = os.path.join(destination, "video_"+str(i)+".mp4")
-    if(debug): print(f"Downloading video {link[:80]+'...'}")
-    succsess = download_file(link, file_path, debug)
+    logging.info(f"Downloading video {link}")
+    succsess = download_file(link, file_path)
     if not succsess: 
-      print("Problem downloading video:\n\
+      logging.error("Problem downloading video:\n\
              (1) Check your network connection")
       exit()
     videos_files+= [file_path]

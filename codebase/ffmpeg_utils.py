@@ -1,10 +1,11 @@
-import os
-from datetime import datetime
+import os, logging, re
 import subprocess
 
-LOG_FILE= "./log.txt"
+with open("logging.conf", "r") as log_config:
+    LOG_FILE = re.findall(r"args=\('([^']+\.[^']+)',", log_config.read(), re.MULTILINE)[0]
 
-def ffmpeg_mp3_mp4_compose(video_file, audio_file, output_file, debug= False):
+
+def ffmpeg_mp3_mp4_compose(video_file, audio_file, output_file):
     """Combine an audio file and a video file using FFmpeg, trimming the video to match the audio duration.
     Parameters:
         audio_file (str): Path to the audio file (e.g., MP3 file).
@@ -29,13 +30,11 @@ def ffmpeg_mp3_mp4_compose(video_file, audio_file, output_file, debug= False):
         Make sure to replace placeholder file paths with actual paths.
         Ensure FFmpeg and FFprobe are installed on your system.
     """
- 
-    logging = "info" if debug else "quiet"
 
     cmd = [
         'ffmpeg',
         '-hide_banner', 
-        '-loglevel', logging, 
+        '-loglevel', "error", 
         '-i', video_file,
         '-i', audio_file,
         '-c:v', 'copy',
@@ -44,12 +43,12 @@ def ffmpeg_mp3_mp4_compose(video_file, audio_file, output_file, debug= False):
         output_file
     ]
 
-    if debug: print(f"Running compose command: {' '.join(cmd)}"[:80]+"...")
+    logging.info(f"Running compose command: {' '.join(cmd)}")
     subprocess.run(cmd, stdout= open(LOG_FILE, 'a'), stderr=open(LOG_FILE, 'a'), check=True)
 
     return output_file
 
-def ffmpeg_mp4_concat(input_filenames, output_filename, debug= False):
+def ffmpeg_mp4_concat(input_filenames, output_filename):
     """
     Concatenate multiple MP4 video files into a single MP4 file using FFmpeg.
 
@@ -68,12 +67,11 @@ def ffmpeg_mp4_concat(input_filenames, output_filename, debug= False):
         output_file = 'output_concatenated.mp4'
         ffmpeg_mp4_concat(input_files, output_file)
     """    
-    logging = "info" if debug else "quiet"
 
     cmd = [
         'ffmpeg',
         '-hide_banner', 
-        '-loglevel', logging, 
+        '-loglevel', "error", 
     ]
 
     for i, input_file in enumerate(input_filenames):
@@ -83,12 +81,12 @@ def ffmpeg_mp4_concat(input_filenames, output_filename, debug= False):
     cmd.extend(['-filter_complex', filter_complex])
     cmd.extend(['-map', '[outv]', output_filename])
 
-    if debug: print(f"Running concat command: {' '.join(cmd)}"[:80]+"...")
+    logging.info(f"Running concat command: {' '.join(cmd)}")
     subprocess.run(cmd, stdout= open(LOG_FILE, 'a'), stderr=open(LOG_FILE, 'a'), check=True)
 
     return output_filename
 
-def ffmpeg_mp3_concat(input_filenames, output_filename, debug= False):
+def ffmpeg_mp3_concat(input_filenames, output_filename):
     """
     Concatenate multiple MP3 audio files into a single MP3 file using FFmpeg.
     
@@ -107,18 +105,17 @@ def ffmpeg_mp3_concat(input_filenames, output_filename, debug= False):
         output_file = 'output_concatenated.mp3'
         ffmpeg_mp3_concat(input_files, output_file)
     """    
-    logging = "info" if debug else "quiet"
-
+    
     cmd = [
         'ffmpeg',
         '-hide_banner', 
-        '-loglevel', logging, 
+        '-loglevel', "error", 
         '-i', 'concat:' + '|'.join(input_filenames),
         '-c', 'copy',
         output_filename
     ]
 
-    if debug: print(f"Running concat command: {' '.join(cmd)}"[:80]+"...")
+    logging.info(f"Running concat command: {' '.join(cmd)}")
     subprocess.run(cmd, stdout= open(LOG_FILE, 'a'), stderr=open(LOG_FILE, 'a'), check=True)
 
     return output_filename
@@ -146,24 +143,23 @@ def ffmpeg_crop(input_filename, output_filename, x, y, w, h, debug= False):
         output_file = 'output_cropped.mp4'
         ffmpeg_crop(input_file, output_file, 100, 50, 800, 600)
     """
-    logging = "info" if debug else "quiet"
 
     cmd = [
         'ffmpeg',
         '-hide_banner',
-        '-loglevel', logging,
+        '-loglevel', "error",
         '-i', input_filename,
         '-vf', f'crop={w}:{h}:{x}:{y}',
         '-c:a', 'copy',
         output_filename
     ]
 
-    if debug: print(f"Running crop command: {' '.join(cmd)}"[:80]+"...")
+    logging.info(f"Running crop command: {' '.join(cmd)}")
     subprocess.run(cmd, stdout= open(LOG_FILE, 'a'), stderr=open(LOG_FILE, 'a'), check=True)
 
     return
 
-def ffmpeg_mp4_timed_text_compose(input_filename, output_filename, timed_texts, debug= False):
+def ffmpeg_mp4_timed_text_compose(input_filename, output_filename, timed_texts):
     """
     """
     
@@ -193,10 +189,10 @@ def ffmpeg_mp4_timed_text_compose(input_filename, output_filename, timed_texts, 
         output_filename
         ]
 
-    if debug: print(f"Running text compose command: {' '.join(cmd)}"[:80]+"...")
+    logging.info(f"Running text compose command: {' '.join(cmd)}")
     subprocess.run(cmd, stdout= open(LOG_FILE, 'a'), stderr=open(LOG_FILE, 'a'), check=True)
 
-def crop_video_16_9(filename, width, height, debug = False):
+def crop_video_16_9(filename, width, height):
     """
     Crop a centered 16:9 rectangle from a video using FFmpeg.
 
@@ -230,6 +226,6 @@ def crop_video_16_9(filename, width, height, debug = False):
     backed_up_filename = filename+".bck"
     os.rename(src=filename, dst=backed_up_filename)
 
-    ffmpeg_crop(backed_up_filename, filename, x_offset, y_offset, expected_width, expected_height, debug= debug)    
+    ffmpeg_crop(backed_up_filename, filename, x_offset, y_offset, expected_width, expected_height)    
 
     os.remove(backed_up_filename)
