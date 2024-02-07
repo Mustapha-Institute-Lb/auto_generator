@@ -1,4 +1,4 @@
-import requests, json, os, logging
+import requests, json, os, logging, time
 from codebase.utils import download_file
 
 import warnings
@@ -136,7 +136,7 @@ def get_recitations(reciter_number, surah_number, start, end):
 
   return recitations
 
-def download_recitations(recitations, destination):
+def download_recitations(recitations, destination, verbose=True):
   """
   Download audios of several recitations to a certain destination using curl.
 
@@ -163,7 +163,10 @@ def download_recitations(recitations, destination):
   for i, recitation_link in enumerate(recitations):
     file_path = os.path.join(destination, "recitation_" + str(i) + ".mp3")
     logging.info(f"Downloading recitation {recitation_link}")
+    if verbose: print(f"- File {os.path.basename(file_path)}", end=" ")
+    sttime = time.time()
     succsess = download_file(recitation_link, file_path)
+    if verbose: print(f"{time.time()-sttime:.2f} s")
     if not succsess: 
       print("Problem downloading recitation:\n\
              (1) Change reciter and ayat\n\

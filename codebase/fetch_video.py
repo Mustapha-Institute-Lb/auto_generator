@@ -1,4 +1,4 @@
-import json, os, logging
+import json, os, logging, time
 from random import randint
 from codebase.utils import download_file, request_json
 
@@ -140,7 +140,7 @@ def get_videos_conditioned(keyword, required_duration, blacklist, min_width=1080
     total_duration+= video["duration"]
   return videos
 
-def download_videos(videos_links, destination):
+def download_videos(videos_links, destination, verbose=True):
   """
   Download videos to a certain destination using curl.
 
@@ -165,7 +165,10 @@ def download_videos(videos_links, destination):
   for i, link in enumerate(videos_links):
     file_path = os.path.join(destination, "video_"+str(i)+".mp4")
     logging.info(f"Downloading video {link}")
+    if verbose: print(f"- File {os.path.basename(file_path)}", end=" ")
+    sttime = time.time()
     succsess = download_file(link, file_path)
+    if verbose: print(f"{time.time()-sttime:.2f} s")
     if not succsess: 
       logging.error("Problem downloading video:\n\
              (1) Check your network connection")

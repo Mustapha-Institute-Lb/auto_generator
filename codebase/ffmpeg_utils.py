@@ -4,123 +4,7 @@ import subprocess
 with open("logging.conf", "r") as log_config:
     LOG_FILE = re.findall(r"args=\('([^']+\.[^']+)',", log_config.read(), re.MULTILINE)[0]
 
-
-def ffmpeg_mp3_mp4_compose(video_file, audio_file, output_file):
-    """Combine an audio file and a video file using FFmpeg, trimming the video to match the audio duration.
-    Parameters:
-        audio_file (str): Path to the audio file (e.g., MP3 file).
-        video_file (str): Path to the video file (e.g., MP4 file).
-        output_file (str): Path for the output combined video file.
-        debug (boolean): print output
-
-    Returns:
-        None
-
-    Raises:
-        subprocess.CalledProcessError: If FFmpeg commands fail.
-
-    Example:
-        >>> audio_file = 'path/to/your/audio.mp3'
-        >>> video_file = 'path/to/your/video.mp4'
-        >>> output_file = 'path/to/your/output.mp4'
-        >>> ffmpeg_mp3_mp4_compose(audio_file, video_file, output_file)
-        >>> print(f"The combined video is saved at {output_file}.")
-
-    Note:
-        Make sure to replace placeholder file paths with actual paths.
-        Ensure FFmpeg and FFprobe are installed on your system.
-    """
-
-    cmd = [
-        'ffmpeg',
-        '-hide_banner', 
-        '-loglevel', "error", 
-        '-i', video_file,
-        '-i', audio_file,
-        '-c:v', 'copy',
-        '-c:a', 'copy',
-        '-shortest',
-        output_file
-    ]
-
-    logging.info(f"Running compose command: {' '.join(cmd)}")
-    subprocess.run(cmd, stdout= open(LOG_FILE, 'a'), stderr=open(LOG_FILE, 'a'), check=True)
-
-    return output_file
-
-def ffmpeg_mp4_concat(input_filenames, output_filename):
-    """
-    Concatenate multiple MP4 video files into a single MP4 file using FFmpeg.
-
-    Parameters:
-        input_filenames (list): List of input MP4 video file names to be concatenated.
-        output_filename (str): Output file name for the concatenated MP4 video.
-        debug (bool, optional): If True, sets the log level to 'error' for more verbose output.
-                               If False (default), sets the log level to 'quiet' for minimal output.
-
-    Raises:
-        subprocess.CalledProcessError: If the FFmpeg command fails.
-
-    Example:
-        # Concatenate three MP4 video files into a single output file
-        input_files = ['video1.mp4', 'video2.mp4', 'video3.mp4']
-        output_file = 'output_concatenated.mp4'
-        ffmpeg_mp4_concat(input_files, output_file)
-    """    
-
-    cmd = [
-        'ffmpeg',
-        '-hide_banner', 
-        '-loglevel', "error", 
-    ]
-
-    for i, input_file in enumerate(input_filenames):
-        cmd.extend(['-i', input_file])
-    filter_complex = ''.join([f'[{i}:v:0]' for i in range(len(input_filenames))])
-    filter_complex += f'concat=n={len(input_filenames)}:v=1[outv]'
-    cmd.extend(['-filter_complex', filter_complex])
-    cmd.extend(['-map', '[outv]', output_filename])
-
-    logging.info(f"Running concat command: {' '.join(cmd)}")
-    subprocess.run(cmd, stdout= open(LOG_FILE, 'a'), stderr=open(LOG_FILE, 'a'), check=True)
-
-    return output_filename
-
-def ffmpeg_mp3_concat(input_filenames, output_filename):
-    """
-    Concatenate multiple MP3 audio files into a single MP3 file using FFmpeg.
-    
-    Parameters:
-        input_filenames (list): List of input MP3 audio file names to be concatenated.
-        output_filename (str): Output file name for the concatenated MP3 audio.
-        debug (bool, optional): If True, sets the log level to 'error' for more verbose output.
-                               If False (default), sets the log level to 'quiet' for minimal output.
-    
-    Raises:
-        subprocess.CalledProcessError: If the FFmpeg command fails.
-
-    Example:
-        # Concatenate three MP3 audio files into a single output file
-        input_files = ['audio1.mp3', 'audio2.mp3', 'audio3.mp3']
-        output_file = 'output_concatenated.mp3'
-        ffmpeg_mp3_concat(input_files, output_file)
-    """    
-    
-    cmd = [
-        'ffmpeg',
-        '-hide_banner', 
-        '-loglevel', "error", 
-        '-i', 'concat:' + '|'.join(input_filenames),
-        '-c', 'copy',
-        output_filename
-    ]
-
-    logging.info(f"Running concat command: {' '.join(cmd)}")
-    subprocess.run(cmd, stdout= open(LOG_FILE, 'a'), stderr=open(LOG_FILE, 'a'), check=True)
-
-    return output_filename
-
-def ffmpeg_crop(input_filename, output_filename, x, y, w, h, debug= False):
+def ffmpeg_crop(input_filename, output_filename, x, y, w, h):
     """
     Crop a video file using FFmpeg.
 
@@ -150,7 +34,8 @@ def ffmpeg_crop(input_filename, output_filename, x, y, w, h, debug= False):
         '-loglevel', "error",
         '-i', input_filename,
         '-vf', f'crop={w}:{h}:{x}:{y}',
-        '-c:a', 'copy',
+        '-preset', 'ultrafast',
+        '-an',
         output_filename
     ]
 
@@ -158,39 +43,6 @@ def ffmpeg_crop(input_filename, output_filename, x, y, w, h, debug= False):
     subprocess.run(cmd, stdout= open(LOG_FILE, 'a'), stderr=open(LOG_FILE, 'a'), check=True)
 
     return
-
-def ffmpeg_mp4_timed_text_compose(input_filename, output_filename, timed_texts):
-    """
-    """
-    
-    font_file = "./resources/font/amiri.ttf"
-    fontsize = 90
-    fontcolor = "white"
-    x = "(w-text_w)/2" 
-    y = "(h-text_h)/2+50"
-
-    cmd = [
-    'ffmpeg',
-    '-i', input_filename]
-
-    filters = []
-    for timed_text in timed_texts:
-        filters += [(
-            f"drawtext=text='{timed_text['text']}':x={x}:y={y}:fontsize={str(fontsize)}:fontfile={font_file}:"
-            f"fontcolor={fontcolor}:enable='between(t,{str(timed_text['start_time'])},{str(timed_text['end_time'])})'"
-            #","
-            # f"fade=in:st={str(timed_text['start_time'])}:d=1,"
-            # f"fade=out:st={str(timed_text['end_time']-2)}:d=1"
-        )]
-    cmd+= ['-filter_complex', ",".join(filters)]
-
-    cmd += [
-        '-c:a', 'copy',
-        output_filename
-        ]
-
-    logging.info(f"Running text compose command: {' '.join(cmd)}")
-    subprocess.run(cmd, stdout= open(LOG_FILE, 'a'), stderr=open(LOG_FILE, 'a'), check=True)
 
 def crop_video_16_9(filename, width, height):
     """
@@ -229,3 +81,112 @@ def crop_video_16_9(filename, width, height):
     ffmpeg_crop(backed_up_filename, filename, x_offset, y_offset, expected_width, expected_height)    
 
     os.remove(backed_up_filename)
+
+def ffmpeg_compose(video_files, audio_files, captions_with_time, output_filename):
+    """
+    Composes a video by concatenating multiple video and audio files, adding captions,
+    title, and subtitle using FFmpeg.
+
+    Parameters:
+    - video_files (list): List of input video file paths to be concatenated.
+    - audio_files (list): List of input audio file paths to be concatenated.
+    - captions_with_time (list): List of dictionaries containing timed captions.
+      Each dictionary should have 'text', 'start_time', and 'end_time' keys.
+    - output_filename (str): Output file path for the composed video.
+
+    Returns:
+    - output_filename (str): Output file path of the composed video.
+    """
+
+    cmd = [
+        'ffmpeg',
+        '-hide_banner',
+        '-loglevel', "info",
+    ]
+
+    # Add input video files to the command
+    for input_file in video_files:
+        cmd.extend(['-i', input_file])
+
+    # Add input audio files to the command
+    for input_file in audio_files:
+        cmd.extend(['-i', input_file])
+
+    # Concatenate video streams
+    v_filter = ''.join([f'[{i}:v]' for i in range(len(video_files))]) + \
+               f'concat=n={len(video_files)}:v=1:a=0[outv]'
+
+    # Concatenate audio streams
+    a_filter = ''.join([f'[{i}:a]' for i in range(len(video_files), len(video_files) + len(audio_files))]) + \
+               f'concat=n={len(audio_files)}:v=0:a=1[outa]'
+
+    # Combine video and audio streams
+    av_filter = v_filter + ";" + a_filter
+
+    # Configure text overlay parameters
+    font_file = "./resources/font/amiri.ttf"
+    fontsize = 90
+    fontcolor = "white"
+    x = "(w-text_w)/2"
+    y = "(h-text_h)/2+100"
+
+    # Create drawtext filter for each timed caption
+    drawtexts = []
+    for timed_text in captions_with_time:
+        drawtexts += [(
+            f"drawtext=text='{timed_text['text']}':x={x}:y={y}:fontsize={str(fontsize)}:"
+            f"fontfile={font_file}:fontcolor={fontcolor}:"
+            f"enable='between(t,{str(timed_text['start_time'])},{str(timed_text['end_time'])})'"
+        )]
+    captions_filter = ','.join(drawtexts)
+
+    # Build the complete FFmpeg command
+    cmd += ['-filter_complex', f"{av_filter}; [outv]{captions_filter}[outf]",
+            '-map', '[outf]',
+            '-map', '[outa]',
+            '-preset', 'ultrafast',
+            output_filename
+            ]
+
+    # Run the FFmpeg command
+    logging.info(f"Running compose command: {' '.join(cmd)}")
+    subprocess.run(cmd, stdout=open(LOG_FILE, 'a'), stderr=open(LOG_FILE, 'a'), check=True)
+
+    return output_filename
+
+
+def ffmpeg_cut(input_filename, start_time, duration):
+    """
+    Overwrites an input video file by cutting a section and saving it using FFmpeg.
+
+    Parameters:
+    - input_filename (str): Input and output video file path.
+    - start_time (int or float): Start time in seconds.
+    - duration (int or float): Duration of the cut in seconds.
+
+    Returns:
+    - input_filename (str): Output file path of the cut video (same as input_filename).
+    """
+
+    temp_output_filename = "temp_cut_output.mp4"
+
+    cmd = [
+        'ffmpeg',
+        '-hide_banner',
+        '-loglevel', "info",
+        '-i', input_filename,
+        '-ss', str(start_time),
+        '-t', str(duration),
+        '-c', 'copy',
+        '-preset', 'ultrafast',
+        temp_output_filename
+    ]
+
+    # Run the FFmpeg command
+    logging.info(f"Running cut command: {' '.join(cmd)}")
+    subprocess.run(cmd, stdout=open(LOG_FILE, 'a'), stderr=open(LOG_FILE, 'a'), check=True)
+
+    # Move the temporary output file to overwrite the original input file
+    os.replace(temp_output_filename, input_filename)
+
+    return input_filename
