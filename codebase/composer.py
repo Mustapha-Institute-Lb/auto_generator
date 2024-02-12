@@ -21,7 +21,7 @@ def preprocess_text(text_file, words_per_view=5):
             cumulative_duration = cumulative_duration + chunk_duration
     return output
 
-def compose_video(video_dir, audio_dir, text_file, output_file):
+def compose_video(video_dir, audio_dir, text_file, output_file, hd):
 
     video_files = [os.path.join(video_dir, f) for f in os.listdir(video_dir)]
     audio_files = [os.path.join(audio_dir, f) for f in os.listdir(audio_dir)]
@@ -33,7 +33,8 @@ def compose_video(video_dir, audio_dir, text_file, output_file):
     ffmpeg_compose(video_files= video_files,
                    audio_files= audio_files,
                    captions_with_time= captions_with_time,
-                   output_filename=output_file)
+                   output_filename=output_file,
+                   hd = hd)
     
     # cut concatenated video to audio duration
     complete_duration = captions_with_time[-1]["end_time"] + 1

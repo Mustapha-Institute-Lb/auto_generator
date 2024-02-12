@@ -44,33 +44,29 @@ def ffmpeg_crop(input_filename, output_filename, x, y, w, h):
 
     return
 
-def crop_video_16_9(filename, width, height):
+def crop_video(filename, width, height, expected_width, expected_height):
     """
-    Crop a centered 16:9 rectangle from a video using FFmpeg.
+    Crop a video file to the specified dimensions.
 
     Parameters:
-        filename (str): Video file complete path and name. Expecting ".mp4" extension.
-        width (int): Video resolution width.
-        height (int): Video resolution height.
-        debug (bool, optional): Debug flag. If True, sets the log level to 'error' for more verbose output.
-                               If False (default), sets the log level to 'quiet' for minimal output.
-
-    Returns:
-        None. It overwrites the original video with a cropped one.
+        filename (str): The path to the input video file.
+        width (int): The original width of the video.
+        height (int): The original height of the video.
+        expected_width (int): The desired width after cropping.
+        expected_height (int): The desired height after cropping.
 
     Raises:
-        Exception: If video resolution is less than 1080x1920.
+        Exception: If the original video resolution is smaller than the expected resolution.
+
+    Returns:
+        None
 
     Example:
-        # Crop a centered 16:9 rectangle from a video with resolution 1920x1080
-        crop_video("./video.mp4", 1920, 1080)
-        Result: (Nothing)
+        crop_video("input_video.mp4", 1920, 1080, 1280, 720)
     """
-    expected_width = 1080
-    expected_height= 1920
 
     if (width<expected_width or height<expected_height):
-       raise Exception(f"Video resolution should be greater than 1080x1920 passed resolution ({width}, {height})")
+       raise Exception(f"Video resolution should be greater than ({expected_width}, {expected_height}) passed resolution ({width}, {height})")
 
     x_offset = (width - expected_width) // 2
     y_offset = (height - expected_height) // 2
@@ -82,7 +78,7 @@ def crop_video_16_9(filename, width, height):
 
     os.remove(backed_up_filename)
 
-def ffmpeg_compose(video_files, audio_files, captions_with_time, output_filename):
+def ffmpeg_compose(video_files, audio_files, captions_with_time, output_filename, hd):
     """
     Composes a video by concatenating multiple video and audio files, adding captions,
     title, and subtitle using FFmpeg.
@@ -93,10 +89,18 @@ def ffmpeg_compose(video_files, audio_files, captions_with_time, output_filename
     - captions_with_time (list): List of dictionaries containing timed captions.
       Each dictionary should have 'text', 'start_time', and 'end_time' keys.
     - output_filename (str): Output file path for the composed video.
+    - hd (bool): If True, use HD settings for font size. If False, use SD settings.
 
     Returns:
     - output_filename (str): Output file path of the composed video.
+
+    Example:
+        ffmpeg_compose(["video1.mp4", "video2.mp4"], ["audio1.mp3", "audio2.mp3"],
+                        [{"text": "Caption 1", "start_time": 10, "end_time": 15},
+                         {"text": "Caption 2", "start_time": 20, "end_time": 25}],
+                        "output_video.mp4", hd=True)
     """
+
 
     cmd = [
         'ffmpeg',
@@ -125,10 +129,10 @@ def ffmpeg_compose(video_files, audio_files, captions_with_time, output_filename
 
     # Configure text overlay parameters
     font_file = "./resources/font/amiri.ttf"
-    fontsize = 90
+    fontsize = 100 if hd else 33
     fontcolor = "white"
     x = "(w-text_w)/2"
-    y = "(h-text_h)/2+100"
+    y = f"(h-text_h)/2+{100 if hd else 33}"
 
     # Create drawtext filter for each timed caption
     drawtexts = []

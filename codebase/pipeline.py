@@ -2,15 +2,38 @@ from codebase import fetch_audio, fetch_video, ffmpeg_utils
 from codebase.utils import remove_directory
 from codebase.composer import compose_video
 import os, time, datetime
+from enum import Enum
 
 PERF_LOG_FILE = "./perf.txt"
 
-def generate_video(reciter, surah, start, end, clean_resources=True, verbose=True, monitor_performance=False):
-    
+class Resolution(Enum):
+    HD = (1080, 1920)
+    SD = (360, 640)
+
+def generate_video(reciter, surah, start, end, hd=False, clean_resources=True, verbose=True, monitor_performance=False):
+    """
+    Generate a video by combining recitations with matching videos based on certain criteria.
+
+    Parameters:
+        reciter (str): Name of the reciter.
+        surah (str): Name or number of the Surah.
+        start (int): Start Ayat number.
+        end (int): End Ayat number.
+        hd (bool, optional): If True, generate the video in HD resolution. Default is False (SD resolution).
+        clean_resources (bool, optional): If True, clean up temporary resources after video generation. Default is True.
+        verbose (bool, optional): If True, print detailed progress information. Default is True.
+        monitor_performance (bool, optional): If True, log performance metrics to a file. Default is False.
+
+    Returns:
+        None
+
+    Example:
+        generate_video("ReciterName", "Al-Fatiha", 1, 7, hd=True)
+    """
     # video settings
     video_keyword = "aerial landscape"
-    min_width = 1080
-    min_height = 1920
+    size = Resolution.HD.value if hd else Resolution.SD.value
+
 
     # create a temp directory
     temp_dir = os.path.join(os.getcwd(), "generator_temporary")
@@ -56,7 +79,6 @@ def generate_video(reciter, surah, start, end, clean_resources=True, verbose=Tru
     state = "recitation duration"
     if(verbose): print("Computing durations")
     recitations_durations = fetch_audio.recitations_durations(recitations_files)
-    if(verbose): print(f"Took {time.time()-sttime:.2f} s\n") 
     duration =  time.time() - sttime
     if(verbose): print(f"Took {duration:.2f} s\n")
     if(monitor_performance): monitor_performance_file.write(f"({state}) {duration};")      
@@ -76,7 +98,7 @@ def generate_video(reciter, surah, start, end, clean_resources=True, verbose=Tru
     if(verbose): print("Fetching videos")
     min_duration = sum(recitations_durations)
     blacklist = ["animal", "animals", "cow", "dog", "cat", "human", "person", "woman", "women", "couple", "man", "men", "cross", "church", "people", "mother", "daughter", "son", "sister", "brother", "father"]
-    videos = fetch_video.get_videos_conditioned(video_keyword, min_duration, blacklist, min_width, min_height)
+    videos = fetch_video.get_videos_conditioned(video_keyword, min_duration, blacklist, size)
     duration =  time.time() - sttime
     if(verbose): print(f"Took {duration:.2f} s\n")
     if(monitor_performance): monitor_performance_file.write(f"({state}) {duration};")     
@@ -100,7 +122,7 @@ def generate_video(reciter, surah, start, end, clean_resources=True, verbose=Tru
         height = videos[i]["height"]
         sttime_1 = time.time()
         if(verbose): print(f"- File {os.path.basename(video_file)}", end=" ")  
-        ffmpeg_utils.crop_video_16_9(video_file, width, height)
+        ffmpeg_utils.crop_video(video_file, width, height, size[0], size[1])
         if(verbose): print(f"{time.time() - sttime_1:.2f} s")
     duration =  time.time() - sttime
     if(verbose): print(f"Took {duration:.2f} s\n")
@@ -113,8 +135,8 @@ def generate_video(reciter, surah, start, end, clean_resources=True, verbose=Tru
     compose_video(os.path.join(temp_dir, video_dir),
                                  os.path.join(temp_dir, audio_dir),
                                  os.path.join(temp_dir, captions_filename),
-                                 os.path.join(os.getcwd(), output_file)
-                )
+                                 os.path.join(os.getcwd(), output_file),
+                                 hd)
     duration =  time.time() - sttime
     if(verbose): print(f"Took {duration:.2f} s\n")
     if(monitor_performance): monitor_performance_file.write(f"({state}) {duration};")    

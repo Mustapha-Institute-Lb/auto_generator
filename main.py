@@ -4,8 +4,8 @@ from codebase import pipeline
 import logging
 import logging.config
 
-def generate_video(reciter, surah, start, end, clean_resources, verbose, monitor_performance):
-    pipeline.generate_video(reciter, surah, start, end, clean_resources, verbose, monitor_performance= monitor_performance)
+def generate_video(reciter, surah, start, end, hd, clean_resources, verbose, monitor_performance):
+    pipeline.generate_video(reciter, surah, start, end, hd, clean_resources, verbose, monitor_performance= monitor_performance)
 
 def reciters_list():
     reciters = fetch_audio.get_reciters()
@@ -25,6 +25,7 @@ def main():
     parser.add_argument('--surah', type=int, help='The id of the required surah. Run "surahs_list" to get teh list of surahs')
     parser.add_argument('--start', type=int, help='The starting aya number to start recitation from')
     parser.add_argument('--end', type=int, help='The final aya number in the required recitation')
+    parser.add_argument('--hd', action= 'store_true', default=False, help='Require high definition videos default false')
     parser.add_argument('--silent', action='store_true', default=False, help='Surpress output')
     parser.add_argument('--keep_resources', action='store_true', default=False, help='Keep downloaded temporary files')
     parser.add_argument('--monitor_perf', action='store_true', default=False, help='Write a text file that includes operations times')
@@ -44,7 +45,7 @@ def main():
         if args.reciter is None or args.surah is None or args.start is None or args.end is None:
             print("Error: 'generate_video' mode requires --reciter --surah --start and --end parameters. Run 'help' for more details.")
         else:
-            generate_video(args.reciter, args.surah, args.start, args.end, not args.keep_resources, not args.silent, args.monitor_perf)
+            generate_video(args.reciter, args.surah, args.start, args.end, args.hd, not args.keep_resources, not args.silent, args.monitor_perf)
 
 if __name__ == "__main__":
     logging.config.fileConfig('logging.conf')

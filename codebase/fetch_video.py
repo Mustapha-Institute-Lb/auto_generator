@@ -2,17 +2,50 @@ import json, os, logging, time
 from random import randint
 from codebase.utils import download_file, request_json
 
-
 class MaintainableFetchError(Exception):
     """Custom exception class."""
     pass
 
-def get_pexeles_video(keyword):
+def get_index_smallest_larger_size(of_width, of_height, sizes):
   """
-  Fetch a video from pexels.com using a keyword.
+    Get the index of the smallest larger size in a list of sizes compared to the given dimensions.
+
+    Parameters:
+        of_width (int): The width to compare against.
+        of_height (int): The height to compare against.
+        sizes (list): List of tuples where each tuple contains (index, width, height).
+
+    Returns:
+        int: Index of the smallest larger size. Returns -1 if no size is larger.
+
+    Example:
+        get_index_smallest_larger_size(800, 600, [(1024, 768), (1280, 720), (2, 640, 480)])
+    """
+  sizes = [(i, w, h) for i,(w, h) in enumerate(sizes)]
+  
+  # Get Larger
+  sizes = [(i, w-of_width, h-of_height) for (i, w, h) in sizes]
+  sizes = [(i,w,h) for (i,w,h) in sizes if ((w>0) and (h>0))]
+  
+  if (sizes == []):
+    return -1
+  
+  # Get Smallest Width
+  sizes = [ (i,w,h) for (i,w,h) in sizes if w == min([w for (_, w, _) in sizes])]
+  
+  # Get Smallest Height
+  sizes = [ (i,w,h) for (i,w,h) in sizes if h == min([h for (_, _, h) in sizes])]
+  
+  return sizes[0][0]
+
+def get_pexeles_video(keyword, width, height):
+  """
+  Fetch a video from pexels.com using a keyword and with width and height nearest >= to requried size.
 
   Parameters:
       keyword (str): The keyword associated with the required video. Ex. "nature", "river", "mountain".
+      width (int): Pexeles return a pool of sizes. This parameter specify the nearest width.  
+      height (int): Pexeles return a pool of sizes. This parameter specify the nearest height.  
       debug (bool, optional): A parameter to debug the output. If True, provides more verbose output.
                             If False (default), output is minimal.
 
@@ -69,18 +102,19 @@ def get_pexeles_video(keyword):
 
   logging.info("\n" + json.dumps(video, indent=2) + "\n")
 
-  # Get the largest "HD" file
-  sizes = [v["height"] for v in video["video_files"]]
-  max_index = [ i for i,s in enumerate(sizes) if s == max(sizes)][0]
-  video_file = video["video_files"][max_index]
-  result= {}
-  if(video_file["quality"] == "hd"):
-    result= {"id": video["id"], "duration": video["duration"],
-             "width": video_file["width"], "height": video_file["height"],
-             "tags": tags, "link": video_file["link"]}
-  return result
+  # Select Video with resolution nearest (but larger) to teh required size
+  videos_sizes = [ (v["width"], v["height"]) for v in video["video_files"]]
+  video_index = get_index_smallest_larger_size(width, height, videos_sizes)
+  if video_index==-1:
+     logging.info(f"Couldn't find a video with resolution >= ({width}, {height})")
+     return {}
+  else:
+    video_file = video["video_files"][video_index]
+    return {"id": video["id"], "duration": video["duration"],
+            "width": video_file["width"], "height": video_file["height"],
+            "tags": tags, "link": video_file["link"]}
 
-def get_videos_conditioned(keyword, required_duration, blacklist, min_width=1080, min_height=1920):
+def get_videos_conditioned(keyword, required_duration, blacklist, size):
   """
   Keep on fetching unique videos from pexels.com until their collective duration surpasses a threshold or the required duration, adhering to certain conditions.
 
@@ -88,8 +122,7 @@ def get_videos_conditioned(keyword, required_duration, blacklist, min_width=1080
       keyword (str): The keyword associated with the required video. Ex. "nature", "river", "mountain".
       required_duration (int): The required duration.
       blacklist (list, optional): A list of words that shouldn't occur in the video URL.
-      min_width (int, optional): The required minimum width.
-      min_height (int, optional): The required minimum height.
+      size (int, int): The required minimum width and height as a tuple (min_width, min_height).
       debug (bool, optional): A parameter to debug the output. If True, provides more verbose output.
                             If False (default), output is minimal.
 
@@ -111,22 +144,14 @@ def get_videos_conditioned(keyword, required_duration, blacklist, min_width=1080
   ids= []
   while(total_duration < required_duration):
     video={}
-    video = get_pexeles_video(keyword)
+    video = get_pexeles_video(keyword, width= size[0], height= size[1])
 
     if video == {}:
-        logging.info("Dismissed a non-valid video")
+        logging.info("Dismissed a non-valid sized video")
         continue
 
     if video["id"] in ids:
         logging.info("Dismissed a non-valid video, id already fetched")
-        continue
-
-    if video["width"] < min_width:
-        logging.info(f"Dismissed a non-valid video, width {video['width']} is less than min. width {min_width}")
-        continue
-
-    if video["height"] < min_height:
-        logging.info(f"Dismissed a non-valid video, height {video['height']} is less than min. height {min_height}")
         continue
 
     blacklisted = set(video["tags"]).intersection(set(blacklist))
