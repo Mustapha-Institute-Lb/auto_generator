@@ -136,7 +136,8 @@ def generate_video(reciter, surah, start, end, hd=False, clean_resources=True, v
                                  os.path.join(temp_dir, audio_dir),
                                  os.path.join(temp_dir, captions_filename),
                                  os.path.join(os.getcwd(), output_file),
-                                 hd)
+                                 size[0], size[1]
+,                                 hd)
     duration =  time.time() - sttime
     if(verbose): print(f"Took {duration:.2f} s\n")
     if(monitor_performance): monitor_performance_file.write(f"({state}) {duration};")    

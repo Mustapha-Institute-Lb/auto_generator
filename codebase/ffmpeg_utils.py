@@ -78,13 +78,15 @@ def crop_video(filename, width, height, expected_width, expected_height):
 
     os.remove(backed_up_filename)
 
-def ffmpeg_compose(video_files, audio_files, captions_with_time, output_filename, hd):
+def ffmpeg_compose(video_files, width, height, audio_files, captions_with_time, output_filename, hd):
     """
     Composes a video by concatenating multiple video and audio files, adding captions,
     title, and subtitle using FFmpeg.
 
     Parameters:
     - video_files (list): List of input video file paths to be concatenated.
+    - width (int): Width of the output video.
+    - height (int): Height of the output video.
     - audio_files (list): List of input audio file paths to be concatenated.
     - captions_with_time (list): List of dictionaries containing timed captions.
       Each dictionary should have 'text', 'start_time', and 'end_time' keys.
@@ -127,6 +129,9 @@ def ffmpeg_compose(video_files, audio_files, captions_with_time, output_filename
     # Combine video and audio streams
     av_filter = v_filter + ";" + a_filter
 
+    # Add black transparent overlay
+    overlay_filter = f"color=c=black@0.2:s={width}x{height}:r=1:d=1[outblacked]; [outv][outblacked] overlay [outbg]"
+
     # Configure text overlay parameters
     font_file = "./resources/font/amiri.ttf"
     fontsize = 100 if hd else 33
@@ -142,10 +147,11 @@ def ffmpeg_compose(video_files, audio_files, captions_with_time, output_filename
             f"fontfile={font_file}:fontcolor={fontcolor}:"
             f"enable='between(t,{str(timed_text['start_time'])},{str(timed_text['end_time'])})'"
         )]
-    captions_filter = ','.join(drawtexts)
+
+    captions_filter = f"[outbg]{','.join(drawtexts)}[outf]"
 
     # Build the complete FFmpeg command
-    cmd += ['-filter_complex', f"{av_filter}; [outv]{captions_filter}[outf]",
+    cmd += ['-filter_complex', f"{av_filter}; {overlay_filter}; {captions_filter}",
             '-map', '[outf]',
             '-map', '[outa]',
             '-preset', 'ultrafast',

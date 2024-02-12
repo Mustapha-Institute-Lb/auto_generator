@@ -21,7 +21,7 @@ def preprocess_text(text_file, words_per_view=5):
             cumulative_duration = cumulative_duration + chunk_duration
     return output
 
-def compose_video(video_dir, audio_dir, text_file, output_file, hd):
+def compose_video(video_dir, audio_dir, text_file, output_file, width, height, hd):
 
     video_files = [os.path.join(video_dir, f) for f in os.listdir(video_dir)]
     audio_files = [os.path.join(audio_dir, f) for f in os.listdir(audio_dir)]
@@ -31,6 +31,8 @@ def compose_video(video_dir, audio_dir, text_file, output_file, hd):
 
     # compose audio, video, and text
     ffmpeg_compose(video_files= video_files,
+                   width= width,
+                   height= height,
                    audio_files= audio_files,
                    captions_with_time= captions_with_time,
                    output_filename=output_file,
