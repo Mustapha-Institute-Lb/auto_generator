@@ -78,7 +78,7 @@ def crop_video(filename, width, height, expected_width, expected_height):
 
     os.remove(backed_up_filename)
 
-def ffmpeg_compose(video_files, width, height, audio_files, captions_with_time, output_filename, hd):
+def ffmpeg_compose(video_files, width, height, audio_files, captions_with_time, title, subtitle, output_filename, hd):
     """
     Composes a video by concatenating multiple video and audio files, adding captions,
     title, and subtitle using FFmpeg.
@@ -90,6 +90,8 @@ def ffmpeg_compose(video_files, width, height, audio_files, captions_with_time, 
     - audio_files (list): List of input audio file paths to be concatenated.
     - captions_with_time (list): List of dictionaries containing timed captions.
       Each dictionary should have 'text', 'start_time', and 'end_time' keys.
+    - Title: Title on top of the video
+    - Subtitle: Under the top of the video
     - output_filename (str): Output file path for the composed video.
     - hd (bool): If True, use HD settings for font size. If False, use SD settings.
 
@@ -130,28 +132,47 @@ def ffmpeg_compose(video_files, width, height, audio_files, captions_with_time, 
     av_filter = v_filter + ";" + a_filter
 
     # Add black transparent overlay
-    overlay_filter = f"color=c=black@0.2:s={width}x{height}:r=1:d=1[outblacked]; [outv][outblacked] overlay [outbg]"
-
-    # Configure text overlay parameters
-    font_file = "./resources/font/amiri.ttf"
-    fontsize = 100 if hd else 33
-    fontcolor = "white"
-    x = "(w-text_w)/2"
-    y = f"(h-text_h)/2+{100 if hd else 33}"
+    overlay_filter = f"color=c=black@0.3:s={width}x{height}:r=1:d=1[outblacked]; [outv][outblacked] overlay [outbg]"
 
     # Create drawtext filter for each timed caption
+    # Configure text overlay parameters
+    font_file = "./resources/font/amiri.ttf"
+    h1_fontsize = 100 if hd else 33
+    h2_fontsize = 30 if hd else 11
+    fontcolor = "white"
+    centered_x = "(w-text_w)/2"
+    caption_y = f"(h-text_h)/2+{100 if hd else 33}"
+    title_y = f"{100 if hd else 33}"
+    subtitle_y =  f"{300 if hd else 99}"
+
     drawtexts = []
     for timed_text in captions_with_time:
         drawtexts += [(
-            f"drawtext=text='{timed_text['text']}':x={x}:y={y}:fontsize={str(fontsize)}:"
+            f"drawtext=text='{timed_text['text']}':x={centered_x}:y={caption_y}:fontsize={str(h1_fontsize)}:"
             f"fontfile={font_file}:fontcolor={fontcolor}:"
             f"enable='between(t,{str(timed_text['start_time'])},{str(timed_text['end_time'])})'"
         )]
 
-    captions_filter = f"[outbg]{','.join(drawtexts)}[outf]"
+    # create drawtext filter for title and subtitle
+    duration = captions_with_time[-1]["end_time"]
+
+    drawtexts += [(
+            f"drawtext=text='{title}':x={centered_x}:y={title_y}:fontsize={str(h1_fontsize)}:"
+            f"fontfile={font_file}:fontcolor={fontcolor}:"
+            f"enable='between(t,{str(0)},{str(duration)})'"
+        )]
+    
+    drawtexts += [(
+            f"drawtext=text='{subtitle}':x={centered_x}:y={subtitle_y}:fontsize={str(h2_fontsize)}:"
+            f"fontfile={font_file}:fontcolor={fontcolor}:"
+            f"enable='between(t,{str(0)},{str(duration)})'"
+        )]
+
+
+    text_filter = f"[outbg]{','.join(drawtexts)}[outf]"
 
     # Build the complete FFmpeg command
-    cmd += ['-filter_complex', f"{av_filter}; {overlay_filter}; {captions_filter}",
+    cmd += ['-filter_complex', f"{av_filter}; {overlay_filter}; {text_filter}",
             '-map', '[outf]',
             '-map', '[outa]',
             '-preset', 'ultrafast',

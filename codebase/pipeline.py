@@ -55,7 +55,11 @@ def generate_video(reciter, surah, start, end, hd=False, clean_resources=True, v
     sttime = time.time()
     state = "fetch recitation"
     if(verbose): print("Fetching recitations")
-    recitations = fetch_audio.get_recitations(reciter, surah, start, end)
+    audios = fetch_audio.get_recitations(reciter, surah, start, end)
+    surah_name = audios["surah"]
+    reciter_name = audios["reciter"]
+    recitations = audios["recitations"]
+
     duration =  time.time() - sttime
     if(verbose): print(f"Took {duration:.2f} s\n")
     if(monitor_performance): monitor_performance_file.write(f"({state}) {duration};")  
@@ -132,12 +136,16 @@ def generate_video(reciter, surah, start, end, hd=False, clean_resources=True, v
     sttime = time.time()
     state= "compose video"
     if(verbose): print("Composing final video")
-    compose_video(os.path.join(temp_dir, video_dir),
-                                 os.path.join(temp_dir, audio_dir),
-                                 os.path.join(temp_dir, captions_filename),
-                                 os.path.join(os.getcwd(), output_file),
-                                 size[0], size[1]
-,                                 hd)
+    compose_video(video_dir= os.path.join(temp_dir, video_dir),
+                 audio_dir= os.path.join(temp_dir, audio_dir),
+                 text_file= os.path.join(temp_dir, captions_filename),
+                 title = surah_name,
+                 subtitle = reciter_name,
+                 output_file= os.path.join(os.getcwd(), output_file),
+                 width= size[0],
+                 height= size[1],
+                 hd= hd)
+    
     duration =  time.time() - sttime
     if(verbose): print(f"Took {duration:.2f} s\n")
     if(monitor_performance): monitor_performance_file.write(f"({state}) {duration};")    

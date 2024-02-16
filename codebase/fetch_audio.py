@@ -62,26 +62,32 @@ def get_surahs():
 
 def get_recitations(reciter_number, surah_number, start, end):
   """
-  Fetch ayat recitations from the Islamic Network API.
+    Fetch recitations of specific ayat from the Islamic Network API.
 
-  Parameters:
-      reciter_number (int): The id of the reciter. Approximately 20 reciters can be fetched using get_reciters().
-      surah_number (int): The id of the surah.
-      start (int): The starting aya number of the required recitations.
-      end (int): The last aya number of the required recitations.
+    Parameters:
+        reciter_number (int): The id of the reciter. Retrieve reciter IDs using get_reciters().
+        surah_number (int): The id of the surah (chapter) containing the ayat.
+        start (int): The starting ayah number of the required recitations.
+        end (int): The last ayah number of the required recitations.
 
-  Returns:
-      A list of dictionaries containing the following keys: ['text', 'audio_link'].
-      - 'text': Aya text in Arabic.
-      - 'audio_link': The link to the audio resource downloadable using curl.
+    Returns:
+        dict: A dictionary containing information about the recitations.
+            - 'surah': The name of the surah.
+            - 'reciter': The name of the reciter.
+            - 'recitations': A list of dictionaries with keys 'text' and 'audio_link'.
+                - 'text': Arabic text of the ayah.
+                - 'audio_link': Link to the audio resource, downloadable using curl.
 
-  Raises:
-      Error: If there is an issue fetching recitations.
+    Raises:
+        FetchError: If there is an issue fetching recitations.
+        Exception: If there are validation errors such as invalid reciter or surah IDs,
+                   out-of-range ayah numbers, or incorrect order of start and end.
 
-  Example:
-      get_recitations(1, 1, 1, 2)
-      Result: [{'text': 'بِسۡمِ ٱللَّهِ ٱلرَّحۡمَـٰنِ ٱلرَّحِیمِ\n',
-                'audio_link': 'https://cdn.islamic.network/.../1.mp3'}, ...]
+    Example:
+        get_recitations(1, 1, 1, 2)
+        Result: {'surah': 'سورة الفاتحة', 'reciter': 'عبد الباسط عبد الصمد',
+                 'recitations': [{'text': 'بِسۡمِ ٱللَّهِ ٱلرَّحۡمَـٰنِ ٱلرَّحِیمِ\n',
+                                  'audio_link': 'https://cdn.islamic.network/.../1.mp3'}, ...]}
   """
 
 
@@ -89,7 +95,7 @@ def get_recitations(reciter_number, surah_number, start, end):
   logging.info(f"Getting surahs data")
   surahs = get_surahs()
   logging.info(f"Getting reciters data")
-  reciter = [reciter["code"] for reciter in get_reciters() if reciter["id"] == reciter_number][0]
+  reciter = [reciter for reciter in get_reciters() if reciter["id"] == reciter_number][0]
   if not reciter :
     raise FetchError("Reciter id doesnt exist")
   if surah_number not in [surah["id"] for surah in surahs]:
@@ -123,7 +129,7 @@ def get_recitations(reciter_number, surah_number, start, end):
   # fetch ayat
   recitations = []
   for i, aya in enumerate(required_ayat):
-    audio_link = "https://cdn.islamic.network/quran/audio/192/" + str(reciter) + "/" + str(aya) + ".mp3"
+    audio_link = "https://cdn.islamic.network/quran/audio/192/" + str(reciter["code"]) + "/" + str(aya) + ".mp3"
     logging.info(f"Getting recitation {audio_link}")
     text_response = requests.get("https://api.alquran.cloud/v1/ayah/" + str(aya))
     if(text_response.status_code == 200):
@@ -134,7 +140,7 @@ def get_recitations(reciter_number, surah_number, start, end):
       text = text.replace("بِسۡمِ ٱللَّهِ ٱلرَّحۡمَـٰنِ ٱلرَّحِیمِ", "")
     recitations+= [{"text": text.strip(), "audio_link": audio_link}]
 
-  return recitations
+  return {'surah': surah['name'], 'reciter': reciter["name"] ,'recitations': recitations, }
 
 def download_recitations(recitations, destination, verbose=True):
   """
