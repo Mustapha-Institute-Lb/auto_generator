@@ -1,18 +1,23 @@
 import sys
 sys.path.append("..")
 
-from flask import Flask, request
+from flask import Flask, request, send_file
 from codebase.fetch_audio import get_reciters, get_surahs
-from codebase.pipeline import generate_video
+from codebase.pipeline import generate_video, GENERATED_FILENAME
+from codebase.status import Status as InternalStatus
+from codebase.status import StatusReader as InternalStatusReader
 import uuid, os, logging, logging.config
 from threading import Thread
 from enum import Enum
 
 app = Flask(__name__)
 
-class Status(str, Enum):
+class APIStatus(str, Enum):
     SUCCESS = "Success"
-    FAIL = "Fail"
+    FAILED = "Failed"
+    RUNNIG = "Running"
+    DONE = "Done"
+
 
 VERSION= "v1"
 TEMP_DIR_NAME = "api_temporary"
@@ -48,16 +53,51 @@ def post_generate_request():
                         args=(reciter_id, surah_id, start_aya, end_aya, job_dir_path))
         thread.start()
 
-        return {"status": Status.SUCCESS, "job_id": job_name}
+        return {"status": APIStatus.SUCCESS, "job_id": job_name}
 
     except KeyError as e:
         logging.error(e.args)
-        return {"status": Status.FAIL, "message": "Wrong or missing body param"} 
+        return {"status": APIStatus.FAILED, "message": "Wrong or missing body param"} 
 
     except Exception as e:
         logging.error(e.args)
-        return {"status": Status.FAIL, "message": "Job creation failed"} 
+        return {"status": APIStatus.FAILED, "message": "Job creation failed"} 
 
-@app.get(f"/{VERSION}/job/")
-def get_job_request():
-    return "<p>Hello, World!</p>"
+
+@app.get(f"/{VERSION}/job")
+# Expects ?id=...
+def get_job_status_request():
+
+    try:
+        job_id = request.args.get('id')
+        job_dir = os.path.join(TEMP_DIR, job_id)
+        job_status = InternalStatusReader(job_dir).get_status()
+
+        if job_status["status"] == InternalStatus.FAILED:
+            raise Exception(job_status["message"])
+
+        elif job_status["status"] == InternalStatus.COMPLETED:
+            resource_url = f"/{VERSION}/download?id={job_id}"
+            return {"status": APIStatus.DONE, "resource": resource_url}
+        
+        else:
+            return {"status": APIStatus.RUNNIG, "progress": job_status["progress"], "stage": job_status["status"].value}
+        
+    except KeyError as e:
+        logging.error("Error args:"+ e.args)
+        return {"status": APIStatus.FAILED, "message": "Wrong or missing body param"} 
+
+    except Exception as e:
+        logging.error("Error " + e.stack_info + " args:"+ e.args)
+        return {"status": APIStatus.FAILED, "message": "Job retrieval failed"} 
+    
+@app.get(f'/{VERSION}/download')
+# Expects ?id=...
+def download_video():
+    try:
+        job_id = request.args.get('id')
+        job_dir = os.path.join(TEMP_DIR, job_id)
+        generated_file = os.path.join(job_dir, GENERATED_FILENAME)
+        return send_file(generated_file, mimetype="video/mp4")
+    except Exception as e:
+        return {"status": APIStatus.FAILED, "message": "File download failed"} 
