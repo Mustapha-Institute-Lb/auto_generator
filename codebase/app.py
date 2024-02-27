@@ -7,13 +7,14 @@ VERSION= "v1"
 
 @app.route(f"/{VERSION}/reciters")
 def get_reciters_request():
-    return get_reciters()
+    return get_reciters(with_code=False)
 
 @app.route(f"/{VERSION}/surahs")
 def get_surahs_request():
-    return get_surahs()
+    return get_surahs(with_base=False)
 
 @app.route(f"/{VERSION}/generate")
+
 def post_generate_request():
     return "<p>Hello, World!</p>"
 

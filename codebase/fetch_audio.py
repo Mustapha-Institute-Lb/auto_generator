@@ -9,12 +9,13 @@ class FetchError(Exception):
     """Custom exception class."""
     pass
 
-def get_reciters():
+def get_reciters(with_code=True):
   """
     Fetch all reciters' names and ids from the Islamic Network API.
 
     Returns:
         A list of dictionaries containing the following keys: ['id', 'name', 'code'].
+        code is ommited if with_code is False
 
     Example:
         # Fetch all reciters' names and ids
@@ -28,11 +29,14 @@ def get_reciters():
   id=1
   for reciter in content["data"]:
       if reciter["language"] == "ar":
-        reciters+= [{"id": id, "name": reciter["name"], "code": reciter["identifier"]}]
+        if with_code:
+          reciters+= [{"id": id, "name": reciter["name"], "code": reciter["identifier"]}]
+        else:
+          reciters+= [{"id": id, "name": reciter["name"]}]
         id+=1
   return reciters
 
-def get_surahs():
+def get_surahs(with_base=True):
   """
     Fetch all surah names and ids from the Islamic Network API.
 
@@ -41,6 +45,7 @@ def get_surahs():
         - 'id': Surah ID.
         - 'name': Surah name.
         - 'aya_base': The number of the first verse of the surah out of all Quran verses.
+                      (aya_base is omited if with_base is False)
         - 'n_aya': The number of verses in the surah.
 
     Example:
@@ -55,7 +60,10 @@ def get_surahs():
   id=1
   aya_base= 0
   for surah in content["data"]["surahs"]["references"]:
-    surahs+= [{"id": id, "name": surah["name"], "aya_base": aya_base, "n_aya": surah["numberOfAyahs"]}]
+    if with_base:
+      surahs+= [{"id": id, "name": surah["name"], "aya_base": aya_base, "n_aya": surah["numberOfAyahs"]}]
+    else:
+      surahs+= [{"id": id, "name": surah["name"], "n_aya": surah["numberOfAyahs"]}]
     aya_base+= surah["numberOfAyahs"]
     id+=1
   return surahs
