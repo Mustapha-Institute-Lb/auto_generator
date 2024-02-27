@@ -10,6 +10,7 @@ api/perf.text
 cmd/logs.txt
 cmd/perf.txt
 cmd/generator_temporary/
+cmd/status.json
 
 generated.mp4
 intermediate.mp4
