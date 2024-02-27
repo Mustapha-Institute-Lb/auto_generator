@@ -9,7 +9,7 @@ import logging.config
 import os
 
 def generate_video(reciter, surah, start, end, hd, clean_resources, verbose, monitor_performance):
-    pipeline.generate_video(reciter, surah, start, end, os.getcwd , hd, clean_resources, verbose, monitor_performance= monitor_performance)
+    pipeline.generate_video(reciter, surah, start, end, os.getcwd() , hd, clean_resources, verbose, monitor_performance= monitor_performance)
 
 def reciters_list():
     reciters = fetch_audio.get_reciters()
