@@ -1,8 +1,10 @@
 from codebase import fetch_audio, fetch_video, ffmpeg_utils
 from codebase.utils import remove_directory
+from codebase.status import StatusUpdater
 from codebase.composer import compose_video
 import os, time, datetime
 from enum import Enum
+import json
 
 PERF_LOG_FILE = "./perf.txt"
 
@@ -30,10 +32,13 @@ def generate_video(reciter, surah, start, end, directory, hd=False, clean_resour
     Example:
         generate_video("ReciterName", "Al-Fatiha", 1, 7, hd=True)
     """
+
+    status_updater = StatusUpdater(directory)
+    status_updater.set_status_started()
+
     # video settings
     video_keyword = "aerial landscape"
     size = Resolution.HD.value if hd else Resolution.SD.value
-
 
     # create a temp directory
     temp_dir = os.path.join(directory, "generator_temporary")
@@ -53,8 +58,8 @@ def generate_video(reciter, surah, start, end, directory, hd=False, clean_resour
 
     # fetch recitations
     sttime = time.time()
-    state = "fetch recitation"
-    if(verbose): print("Fetching recitations")
+    status_updater.set_status_fetch_audio()
+    if(verbose): print(status_updater.get_status().value[1])
     audios = fetch_audio.get_recitations(reciter, surah, start, end)
     surah_name = audios["surah"]
     reciter_name = audios["reciter"]
@@ -62,65 +67,65 @@ def generate_video(reciter, surah, start, end, directory, hd=False, clean_resour
 
     duration =  time.time() - sttime
     if(verbose): print(f"Took {duration:.2f} s\n")
-    if(monitor_performance): monitor_performance_file.write(f"({state}) {duration};")  
+    if(monitor_performance): monitor_performance_file.write(f"({status_updater.get_status().value[1]}) {duration};")  
      
 
     # download recitations
     sttime = time.time()
-    state = "download recitation"
-    if(verbose): print("Downloading recitations")
+    status_updater.set_status_download_audio()
+    if(verbose): print(status_updater.get_status().value[1])
     recitations_files = fetch_audio.download_recitations([r["audio_link"] for r in recitations],\
                                                           os.path.join(temp_dir, audio_dir), verbose)
     duration =  time.time() - sttime
     if(verbose): print(f"Took {duration:.2f} s\n")
-    if(monitor_performance): monitor_performance_file.write(f"({state}) {duration};")    
+    if(monitor_performance): monitor_performance_file.write(f"({status_updater.get_status().value[1]}) {duration};")    
 
     # recitations captions
     recitations_captions = [r["text"] for r in recitations]
 
     # recitations durations
     sttime = time.time()
-    state = "recitation duration"
-    if(verbose): print("Computing durations")
+    status_updater.set_status_compute_audio_duration()
+    if(verbose): print(status_updater.get_status().value[1])
     recitations_durations = fetch_audio.recitations_durations(recitations_files)
     duration =  time.time() - sttime
     if(verbose): print(f"Took {duration:.2f} s\n")
-    if(monitor_performance): monitor_performance_file.write(f"({state}) {duration};")      
+    if(monitor_performance): monitor_performance_file.write(f"({status_updater.get_status().value[1]}) {duration};")      
 
     # generate captions file
     sttime = time.time()
-    state = "generate captions"
-    if(verbose): print("Generating captions")
+    status_updater.set_status_generate_captions()
+    if(verbose): print(status_updater.get_status().value[1])
     fetch_audio.generate_ayat_caption_file(recitations_captions, recitations_durations, os.path.join(temp_dir, captions_filename))
     duration =  time.time() - sttime
     if(verbose): print(f"Took {duration:.2f} s\n")
-    if(monitor_performance): monitor_performance_file.write(f"({state}) {duration};")   
+    if(monitor_performance): monitor_performance_file.write(f"({status_updater.get_status().value[1]}) {duration};")   
 
     # fetch videos
     sttime = time.time()
-    state= "fetch videos"
-    if(verbose): print("Fetching videos")
+    status_updater.set_status_fetch_video()
+    if(verbose): print(status_updater.get_status().value[1])
     min_duration = sum(recitations_durations)
     blacklist = ["animal", "animals", "cow", "dog", "cat", "human", "person", "woman", "women", "couple", "man", "men", "cross", "church", "people", "mother", "daughter", "son", "sister", "brother", "father"]
     videos = fetch_video.get_videos_conditioned(video_keyword, min_duration, blacklist, size)
     duration =  time.time() - sttime
     if(verbose): print(f"Took {duration:.2f} s\n")
-    if(monitor_performance): monitor_performance_file.write(f"({state}) {duration};")     
+    if(monitor_performance): monitor_performance_file.write(f"({status_updater.get_status().value[1]}) {duration};")     
     
     # download videos
     sttime = time.time()
-    state = "download videos"
-    if(verbose): print("Downloading videos")
+    status_updater.set_status_download_video()
+    if(verbose): print(status_updater.get_status().value[1])
     videos_links = [v["link"] for v in videos]
     videos_files = fetch_video.download_videos(videos_links, os.path.join(temp_dir, video_dir), videos)
     duration =  time.time() - sttime
     if(verbose): print(f"Took {duration:.2f} s\n")
-    if(monitor_performance): monitor_performance_file.write(f"({state}) {duration};")       
+    if(monitor_performance): monitor_performance_file.write(f"({status_updater.get_status().value[1]}) {duration};")       
 
     # crop videos
     sttime = time.time()
-    state = "crop videos"
-    if(verbose): print("Cropping videos")
+    status_updater.set_status_crop_video()
+    if(verbose): print(status_updater.get_status().value[1])
     for i, video_file in enumerate(videos_files):
         width = videos[i]["width"]
         height = videos[i]["height"]
@@ -130,12 +135,12 @@ def generate_video(reciter, surah, start, end, directory, hd=False, clean_resour
         if(verbose): print(f"{time.time() - sttime_1:.2f} s")
     duration =  time.time() - sttime
     if(verbose): print(f"Took {duration:.2f} s\n")
-    if(monitor_performance): monitor_performance_file.write(f"({state}) {duration};")      
+    if(monitor_performance): monitor_performance_file.write(f"({status_updater.get_status().value[1]}) {duration};")      
 
     # compose video
     sttime = time.time()
-    state= "compose video"
-    if(verbose): print("Composing final video")
+    status_updater.set_status_compose_video()
+    if(verbose): print(status_updater.get_status().value[1])
     compose_video(video_dir= os.path.join(temp_dir, video_dir),
                  audio_dir= os.path.join(temp_dir, audio_dir),
                  text_file= os.path.join(temp_dir, captions_filename),
@@ -148,9 +153,11 @@ def generate_video(reciter, surah, start, end, directory, hd=False, clean_resour
     
     duration =  time.time() - sttime
     if(verbose): print(f"Took {duration:.2f} s\n")
-    if(monitor_performance): monitor_performance_file.write(f"({state}) {duration};")    
+    if(monitor_performance): monitor_performance_file.write(f"({status_updater.get_status().value[1]}) {duration};")    
 
     if(clean_resources):
         remove_directory(temp_dir)
 
     if(monitor_performance): monitor_performance_file.close()
+
+    status_updater.set_status_completed()
