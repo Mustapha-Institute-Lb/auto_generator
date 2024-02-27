@@ -3,6 +3,9 @@ codebase/__pycache__/
 __pycache__/
 
 api/api_temporary/
+api/generator_temporary/
+api/logs.txt
+api/perf.text
 
 cmd/logs.txt
 cmd/perf.txt

@@ -1,13 +1,18 @@
-from flask import Flask
-from fetch_audio import get_reciters, get_surahs
+import sys
+sys.path.append("..")
+
+from flask import Flask, request
+from codebase.fetch_audio import get_reciters, get_surahs
+from codebase.pipeline import generate_video
 import uuid, os, logging, logging.config
+from threading import Thread
 from enum import Enum
 
 app = Flask(__name__)
 
-class Status(Enum):
-    SUCCESS = "success"
-    FAIL = "fail"
+class Status(str, Enum):
+    SUCCESS = "Success"
+    FAIL = "Fail"
 
 VERSION= "v1"
 TEMP_DIR_NAME = "api_temporary"
@@ -30,17 +35,27 @@ def get_surahs_request():
 def post_generate_request():
 
     try:
-        reciter_id = request.form["reciter_id"]
-        surah_id = request.form["surah_id"]
-        start_aya = request.form["start_aya"]
-        end_aya = request.form["end_aya"]
+        reciter_id = int(request.form["reciter_id"])
+        surah_id = int(request.form["surah_id"])
+        start_aya = int(request.form["start_aya"])
+        end_aya = int(request.form["end_aya"])
 
-        job_name = uuid.uuid1()
+        job_name = str(uuid.uuid1())
         job_file_path = os.path.join(TEMP_DIR, job_name)
         job_file = open(job_file_path, "w")
+
+        thread = Thread(target=generate_video,
+                        args=(reciter_id, surah_id, start_aya, end_aya))
+        thread.start()
+
         return {"status": Status.SUCCESS, "job_id": job_name}
 
+    except KeyError as e:
+        logging.error(e.args)
+        return {"status": Status.FAIL, "message": "Wrong or missing body param"} 
+
     except Exception as e:
+        logging.error(e.args)
         return {"status": Status.FAIL, "message": "Job creation failed"} 
 
 @app.get(f"/{VERSION}/job/")
