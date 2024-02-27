@@ -41,11 +41,11 @@ def post_generate_request():
         end_aya = int(request.form["end_aya"])
 
         job_name = str(uuid.uuid1())
-        job_file_path = os.path.join(TEMP_DIR, job_name)
-        job_file = open(job_file_path, "w")
+        job_dir_path = os.path.join(TEMP_DIR, job_name)
+        job_dir = os.mkdir(job_dir_path)
 
         thread = Thread(target=generate_video,
-                        args=(reciter_id, surah_id, start_aya, end_aya))
+                        args=(reciter_id, surah_id, start_aya, end_aya, job_dir_path))
         thread.start()
 
         return {"status": Status.SUCCESS, "job_id": job_name}

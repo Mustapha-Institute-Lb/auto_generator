@@ -10,7 +10,7 @@ class Resolution(Enum):
     HD = (1080, 1920)
     SD = (360, 640)
 
-def generate_video(reciter, surah, start, end, hd=False, clean_resources=True, verbose=True, monitor_performance=False):
+def generate_video(reciter, surah, start, end, directory, hd=False, clean_resources=True, verbose=True, monitor_performance=False):
     """
     Generate a video by combining recitations with matching videos based on certain criteria.
 
@@ -36,7 +36,7 @@ def generate_video(reciter, surah, start, end, hd=False, clean_resources=True, v
 
 
     # create a temp directory
-    temp_dir = os.path.join(os.getcwd(), "generator_temporary")
+    temp_dir = os.path.join(directory, "generator_temporary")
     if(os.path.exists(temp_dir)):
         remove_directory(temp_dir)
     audio_dir = "mp3"
@@ -141,7 +141,7 @@ def generate_video(reciter, surah, start, end, hd=False, clean_resources=True, v
                  text_file= os.path.join(temp_dir, captions_filename),
                  title = surah_name,
                  subtitle = reciter_name,
-                 output_file= os.path.join(os.getcwd(), output_file),
+                 output_file= os.path.join(directory, output_file),
                  width= size[0],
                  height= size[1],
                  hd= hd)
