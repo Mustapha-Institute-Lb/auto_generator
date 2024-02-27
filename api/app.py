@@ -79,7 +79,6 @@ def get_job_status_request():
         elif job_status["status"] == InternalStatus.COMPLETED:
             resource_url = f"/{VERSION}/download?id={job_id}"
             return {"status": APIStatus.DONE, "resource": resource_url}
-        
         else:
             return {"status": APIStatus.RUNNIG, "progress": job_status["progress"], "stage": job_status["status"].value}
         
