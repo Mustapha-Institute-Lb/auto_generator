@@ -136,7 +136,7 @@ def ffmpeg_compose(video_files, width, height, audio_files, captions_with_time, 
 
     # Create drawtext filter for each timed caption
     # Configure text overlay parameters
-    font_file = "./resources/font/amiri.ttf"
+    font_file = "../resources/font/amiri.ttf"
     h1_fontsize = 100 if hd else 33
     h2_fontsize = 30 if hd else 11
     fontcolor = "white"

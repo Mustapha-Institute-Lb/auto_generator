@@ -1,9 +1,13 @@
 .venv/
 codebase/__pycache__/
 __pycache__/
-generator_temporary/
-logs.txt
-perf.txt
+
+api/api_temporary/
+
+cmd/logs.txt
+cmd/perf.txt
+cmd/generator_temporary/
+
 generated.mp4
 intermediate.mp4
 generated/
