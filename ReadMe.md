@@ -1,4 +1,4 @@
-### A codebase to generate quranic videos on the go
+### A codebase to generate quranic videos on the go.
 
 #### Installation on Linux
 * install python
