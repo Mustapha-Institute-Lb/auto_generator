@@ -1,13 +1,10 @@
 import requests, json, os, logging, time
 from codebase.utils import download_file
+from codebase.exceptions import FetchError
 
 import warnings
 warnings.filterwarnings("ignore", category=RuntimeWarning, module="pydub")
 from pydub import AudioSegment
-
-class FetchError(Exception):
-    """Custom exception class."""
-    pass
 
 def get_reciters(with_code=True):
   """
@@ -103,26 +100,34 @@ def get_recitations(reciter_number, surah_number, start, end):
   logging.info(f"Getting surahs data")
   surahs = get_surahs()
   logging.info(f"Getting reciters data")
-  reciter = [reciter for reciter in get_reciters() if reciter["id"] == reciter_number][0]
-  if not reciter :
-    raise FetchError("Reciter id doesnt exist")
-  if surah_number not in [surah["id"] for surah in surahs]:
-    raise FetchError("Surah id doesnt exist")
+  reciters = get_reciters()
+  
+  if reciter_number > len(reciters):
+    error_message = f"Reciter id ({reciter_number}) should be between (1, {len(reciters)})"
+    logging.error(error_message)
+    raise FetchError(error_message)
+  
+  if surah_number > len(surahs):
+    error_message = f"Surah id ({surah_number}) should be between (1, {len(surahs)})"
+    logging.error(error_message)
+    raise FetchError(error_message)
+
+  reciter = [reciter for reciter in get_reciters() if reciter["id"] == reciter_number]
 
   # validate aya numbers
   surah = [surah for surah in surahs if surah["id"]==surah_number][0]
   if end > surah["n_aya"]:
-    message = f"Surah {surah['name']} only contain {surah['n_aya']} ayat. Aya number {end} was required"
+    message = f"For {surah['name']} end aya ({end}) should be less than ({surah['n_aya']})"
     logging.error(message)
-    raise Exception(message)
+    raise FetchError(message)
   if start < 1:
-    message = f"start {start} can't be less than one"
+    message = f"Start aya ({start}) can't be less than one"
     logging.error(message)
-    raise Exception(message)
+    raise FetchError(message)
   if end < start:
-    message= f"end {end} can't be less than start {start}"
+    message= f"End aya ({end}) can't be less than start aya ({start})"
     logging.error(message)
-    raise Exception(message)
+    raise FetchError(message)
   
   # from aya number per surah to aya number per quran
   required_ayat= []

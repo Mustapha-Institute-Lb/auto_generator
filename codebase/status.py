@@ -6,7 +6,8 @@ class GenerationJobStatus(str, Enum):
     FAILED = "Failed"
 
 class Status(Enum):
-    FAILED = "Failed"
+    NAMED_FAILURE = "Named Failure"
+    UNAMED_FAILURE = "Unnamed Failure"
     STARTED = "Started"
     FETCH_AUDIO = "Fetching Audio"
     DOWNLOAD_AUDIO = "Downloading Audio"
@@ -19,7 +20,8 @@ class Status(Enum):
     COMPLETED =  "Completed"
 
 status_progress_dict = {
-   Status.FAILED: 0,
+   Status.NAMED_FAILURE: 0,
+   Status.UNAMED_FAILURE: 0,
    Status.STARTED: 0,
    Status.FETCH_AUDIO: 10,
    Status.DOWNLOAD_AUDIO: 20,
@@ -43,8 +45,15 @@ class StatusUpdater:
     def get_status(self):
        return self.status
 
-    def set_status_failed(self, error_message):
-       self.status = Status.FAILED
+    def set_status_named_failure(self, error_message):
+       self.status = Status.NAMED_FAILURE
+       with open(self.status_file_path, "w") as file:
+         json.dump({"status": self.status.value,
+                  "progress": status_progress_dict[self.status],
+                  "message": error_message}, file)
+   
+    def set_status_unnamed_failure(self, error_message):
+       self.status = Status.UNAMED_FAILURE
        with open(self.status_file_path, "w") as file:
          json.dump({"status": self.status.value,
                   "progress": status_progress_dict[self.status],
