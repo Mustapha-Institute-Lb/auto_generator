@@ -68,7 +68,7 @@ def generate_video(reciter, surah, start, end, directory, hd=False, clean_resour
         status_updater.set_status_named_failure(e.args[0])
         exit(0)
     except Exception as e:
-        status_updater.set_status_unnamed_failure(e.args[0])
+        status_updater.set_status_unnamed_failure(str(e))
         exit(0)
 
     surah_name = audios["surah"]
@@ -91,7 +91,7 @@ def generate_video(reciter, surah, start, end, directory, hd=False, clean_resour
         status_updater.set_status_named_failure(e.args[0])
         exit(0)
     except Exception as e:
-        status_updater.set_status_unnamed_failure(e.args[0])
+        status_updater.set_status_unnamed_failure(str(e))
         exit(0)
 
     duration =  time.time() - sttime
@@ -108,7 +108,7 @@ def generate_video(reciter, surah, start, end, directory, hd=False, clean_resour
     try:
         recitations_durations = fetch_audio.recitations_durations(recitations_files)
     except Exception as e:
-        status_updater.set_status_unnamed_failure(e.args[0])
+        status_updater.set_status_unnamed_failure(str(e))
         exit(0)
     duration =  time.time() - sttime
     if(verbose): print(f"Took {duration:.2f} s\n")
@@ -121,7 +121,7 @@ def generate_video(reciter, surah, start, end, directory, hd=False, clean_resour
     try:
         fetch_audio.generate_ayat_caption_file(recitations_captions, recitations_durations, os.path.join(temp_dir, captions_filename))
     except Exception as e:
-        status_updater.set_status_unnamed_failure(e.args[0])
+        status_updater.set_status_unnamed_failure(str(e))
         exit(0)
     duration =  time.time() - sttime
     if(verbose): print(f"Took {duration:.2f} s\n")
@@ -136,7 +136,7 @@ def generate_video(reciter, surah, start, end, directory, hd=False, clean_resour
     try:
         videos = fetch_video.get_videos_conditioned(video_keyword, min_duration, blacklist, size)
     except Exception as e:
-        status_updater.set_status_unnamed_failure(e.args[0])
+        status_updater.set_status_unnamed_failure(str(e))
         exit(0)
     duration =  time.time() - sttime
     if(verbose): print(f"Took {duration:.2f} s\n")
@@ -150,7 +150,7 @@ def generate_video(reciter, surah, start, end, directory, hd=False, clean_resour
     try:
         videos_files = fetch_video.download_videos(videos_links, os.path.join(temp_dir, video_dir), videos)
     except Exception as e:
-        status_updater.set_status_unnamed_failure(e.args[0])
+        status_updater.set_status_unnamed_failure(str(e))
         exit(0)
     duration =  time.time() - sttime
     if(verbose): print(f"Took {duration:.2f} s\n")
@@ -168,7 +168,7 @@ def generate_video(reciter, surah, start, end, directory, hd=False, clean_resour
         try:
             ffmpeg_utils.crop_video(video_file, width, height, size[0], size[1])
         except Exception as e:
-            status_updater.set_status_unnamed_failure(e.args[0])
+            status_updater.set_status_unnamed_failure(str(e))
             exit(0)
         if(verbose): print(f"{time.time() - sttime_1:.2f} s")
     duration =  time.time() - sttime
@@ -190,7 +190,7 @@ def generate_video(reciter, surah, start, end, directory, hd=False, clean_resour
                  height= size[1],
                  hd= hd)
     except Exception as e:
-        status_updater.set_status_unnamed_failure(e.args[0])
+        status_updater.set_status_unnamed_failure(str(e))
         exit(0)
     duration =  time.time() - sttime
     if(verbose): print(f"Took {duration:.2f} s\n")
