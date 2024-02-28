@@ -1,7 +1,7 @@
 import sys
 sys.path.append("..")
 
-from flask import Flask, request, send_file
+from flask import Flask, request, send_file, jsonify
 from codebase.fetch_audio import get_reciters, get_surahs
 from codebase.pipeline import generate_video, GENERATED_FILENAME
 from codebase.status import Status as InternalStatus
@@ -30,11 +30,13 @@ if(not os.path.exists(TEMP_DIR)):
 
 @app.get(f"/{VERSION}/reciters")
 def get_reciters_request():
-    return get_reciters(with_code=False)
+    reciters = get_reciters(with_code=False)
+    return jsonify(reciters) 
 
 @app.get(f"/{VERSION}/surahs")
 def get_surahs_request():
-    return get_surahs(with_base=False)
+    surahs =  get_surahs(with_base=False)
+    return jsonify(surahs) 
 
 @app.post(f"/{VERSION}/generate")
 def post_generate_request():
@@ -53,15 +55,15 @@ def post_generate_request():
                         args=(reciter_id, surah_id, start_aya, end_aya, job_dir_path))
         thread.start()
 
-        return {"status": APIStatus.SUCCESS, "job_id": job_name}
+        return jsonify({"status": APIStatus.SUCCESS, "job_id": job_name})
 
     except KeyError as e:
         logging.error(f"Error {type(e)} args: {e.args}")
-        return {"status": APIStatus.FAILED, "message": "Wrong or missing body param"} 
+        return jsonify({"status": APIStatus.FAILED, "message": "Wrong or missing body param"})
 
     except Exception as e:
         logging.error(f"Error {type(e)} args: {e.args}")
-        return {"status": APIStatus.FAILED, "message": "Job creation failed"} 
+        return jsonify({"status": APIStatus.FAILED, "message": "Job creation failed"})
 
 
 @app.get(f"/{VERSION}/job")
@@ -75,25 +77,25 @@ def get_job_status_request():
 
         if job_status["status"] == InternalStatus.NAMED_FAILURE:
             logging.error(f"Internal Error: {job_status['message']}")
-            return {"status": APIStatus.FAILED, "message": job_status["message"]} 
+            return jsonify({"status": APIStatus.FAILED, "message": job_status["message"]})
         
         elif job_status["status"] == InternalStatus.UNAMED_FAILURE:
             logging.error(f"Internal Error: {job_status['message']}")
-            return {"status": APIStatus.FAILED, "message": "Job status retrieval failed"} 
+            return jsonify({"status": APIStatus.FAILED, "message": "Job status retrieval failed"})
 
         elif job_status["status"] == InternalStatus.COMPLETED:
             resource_url = f"/{VERSION}/download?id={job_id}"
-            return {"status": APIStatus.DONE, "resource": resource_url}
+            return jsonify({"status": APIStatus.DONE, "resource": resource_url})
         else:
-            return {"status": APIStatus.RUNNIG, "progress": job_status["progress"], "stage": job_status["status"].value}
+            return jsonify({"status": APIStatus.RUNNIG, "progress": job_status["progress"], "stage": job_status["status"].value})
         
     except KeyError as e:
         logging.error(f"API Error {type(e)} args: {e.args}")
-        return {"status": APIStatus.FAILED, "message": "Wrong or missing body param"} 
+        return jsonify({"status": APIStatus.FAILED, "message": "Wrong or missing body param"})
 
     except Exception as e:
         logging.error(f"API Error {type(e)} args: {e.args}")
-        return {"status": APIStatus.FAILED, "message": "Job status retrieval failed"} 
+        return jsonify({"status": APIStatus.FAILED, "message": "Job status retrieval failed"})
     
 @app.get(f'/{VERSION}/download')
 # Expects ?id=...
