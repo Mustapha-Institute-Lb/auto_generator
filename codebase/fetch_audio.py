@@ -112,7 +112,7 @@ def get_recitations(reciter_number, surah_number, start, end):
     logging.error(error_message)
     raise FetchError(error_message)
 
-  reciter = [reciter for reciter in get_reciters() if reciter["id"] == reciter_number]
+  reciter = [reciter for reciter in get_reciters() if reciter["id"] == reciter_number][0]
 
   # validate aya numbers
   surah = [surah for surah in surahs if surah["id"]==surah_number][0]
@@ -186,11 +186,10 @@ def download_recitations(recitations, destination, verbose=True):
     sttime = time.time()
     succsess = download_file(recitation_link, file_path)
     if verbose: print(f"{time.time()-sttime:.2f} s")
-    if not succsess: 
-      print("Problem downloading recitation:\n\
-             (1) Change reciter and ayat\n\
-             (2) Check your network connection")
-      exit()
+    if not succsess:
+      error_message = f"No recitation available change reciter"
+      logging.error(error_message)
+      raise FetchError(error_message)
     audios+= [file_path]
   return audios
 

@@ -84,8 +84,16 @@ def generate_video(reciter, surah, start, end, directory, hd=False, clean_resour
     sttime = time.time()
     status_updater.set_status_download_audio()
     if(verbose): print(status_updater.get_status().value)
-    recitations_files = fetch_audio.download_recitations([r["audio_link"] for r in recitations],\
+    try:
+        recitations_files = fetch_audio.download_recitations([r["audio_link"] for r in recitations],\
                                                           os.path.join(temp_dir, audio_dir), verbose)
+    except FetchError as e:
+        status_updater.set_status_named_failure(e.args[0])
+        exit(0)
+    except Exception as e:
+        status_updater.set_status_unnamed_failure(e.args[0])
+        exit(0)
+        
     duration =  time.time() - sttime
     if(verbose): print(f"Took {duration:.2f} s\n")
     if(monitor_performance): monitor_performance_file.write(f"({status_updater.get_status().value}) {duration};")    
