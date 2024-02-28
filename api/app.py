@@ -105,3 +105,6 @@ def download_video():
         return send_file(generated_file, mimetype="video/mp4")
     except Exception as e:
         return {"status": APIStatus.FAILED, "message": "File download failed"} 
+
+if __name__ == '__main__':
+    app.run()
