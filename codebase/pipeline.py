@@ -93,7 +93,7 @@ def generate_video(reciter, surah, start, end, directory, hd=False, clean_resour
     except Exception as e:
         status_updater.set_status_unnamed_failure(e.args[0])
         exit(0)
-        
+
     duration =  time.time() - sttime
     if(verbose): print(f"Took {duration:.2f} s\n")
     if(monitor_performance): monitor_performance_file.write(f"({status_updater.get_status().value}) {duration};")    
@@ -105,7 +105,11 @@ def generate_video(reciter, surah, start, end, directory, hd=False, clean_resour
     sttime = time.time()
     status_updater.set_status_compute_audio_duration()
     if(verbose): print(status_updater.get_status().value)
-    recitations_durations = fetch_audio.recitations_durations(recitations_files)
+    try:
+        recitations_durations = fetch_audio.recitations_durations(recitations_files)
+    except Exception as e:
+        status_updater.set_status_unnamed_failure(e.args[0])
+        exit(0)
     duration =  time.time() - sttime
     if(verbose): print(f"Took {duration:.2f} s\n")
     if(monitor_performance): monitor_performance_file.write(f"({status_updater.get_status().value}) {duration};")      
@@ -114,7 +118,11 @@ def generate_video(reciter, surah, start, end, directory, hd=False, clean_resour
     sttime = time.time()
     status_updater.set_status_generate_captions()
     if(verbose): print(status_updater.get_status().value)
-    fetch_audio.generate_ayat_caption_file(recitations_captions, recitations_durations, os.path.join(temp_dir, captions_filename))
+    try:
+        fetch_audio.generate_ayat_caption_file(recitations_captions, recitations_durations, os.path.join(temp_dir, captions_filename))
+    except Exception as e:
+        status_updater.set_status_unnamed_failure(e.args[0])
+        exit(0)
     duration =  time.time() - sttime
     if(verbose): print(f"Took {duration:.2f} s\n")
     if(monitor_performance): monitor_performance_file.write(f"({status_updater.get_status().value}) {duration};")   
@@ -125,7 +133,11 @@ def generate_video(reciter, surah, start, end, directory, hd=False, clean_resour
     if(verbose): print(status_updater.get_status().value)
     min_duration = sum(recitations_durations)
     blacklist = ["animal", "animals", "cow", "dog", "cat", "human", "person", "woman", "women", "couple", "man", "men", "cross", "church", "people", "mother", "daughter", "son", "sister", "brother", "father"]
-    videos = fetch_video.get_videos_conditioned(video_keyword, min_duration, blacklist, size)
+    try:
+        videos = fetch_video.get_videos_conditioned(video_keyword, min_duration, blacklist, size)
+    except Exception as e:
+        status_updater.set_status_unnamed_failure(e.args[0])
+        exit(0)
     duration =  time.time() - sttime
     if(verbose): print(f"Took {duration:.2f} s\n")
     if(monitor_performance): monitor_performance_file.write(f"({status_updater.get_status().value}) {duration};")     
@@ -135,7 +147,11 @@ def generate_video(reciter, surah, start, end, directory, hd=False, clean_resour
     status_updater.set_status_download_video()
     if(verbose): print(status_updater.get_status().value)
     videos_links = [v["link"] for v in videos]
-    videos_files = fetch_video.download_videos(videos_links, os.path.join(temp_dir, video_dir), videos)
+    try:
+        videos_files = fetch_video.download_videos(videos_links, os.path.join(temp_dir, video_dir), videos)
+    except Exception as e:
+        status_updater.set_status_unnamed_failure(e.args[0])
+        exit(0)
     duration =  time.time() - sttime
     if(verbose): print(f"Took {duration:.2f} s\n")
     if(monitor_performance): monitor_performance_file.write(f"({status_updater.get_status().value}) {duration};")       
@@ -149,7 +165,11 @@ def generate_video(reciter, surah, start, end, directory, hd=False, clean_resour
         height = videos[i]["height"]
         sttime_1 = time.time()
         if(verbose): print(f"- File {os.path.basename(video_file)}", end=" ")  
-        ffmpeg_utils.crop_video(video_file, width, height, size[0], size[1])
+        try:
+            ffmpeg_utils.crop_video(video_file, width, height, size[0], size[1])
+        except Exception as e:
+            status_updater.set_status_unnamed_failure(e.args[0])
+            exit(0)
         if(verbose): print(f"{time.time() - sttime_1:.2f} s")
     duration =  time.time() - sttime
     if(verbose): print(f"Took {duration:.2f} s\n")
@@ -159,7 +179,8 @@ def generate_video(reciter, surah, start, end, directory, hd=False, clean_resour
     sttime = time.time()
     status_updater.set_status_compose_video()
     if(verbose): print(status_updater.get_status().value)
-    compose_video(video_dir= os.path.join(temp_dir, video_dir),
+    try:
+        compose_video(video_dir= os.path.join(temp_dir, video_dir),
                  audio_dir= os.path.join(temp_dir, audio_dir),
                  text_file= os.path.join(temp_dir, captions_filename),
                  title = surah_name,
@@ -168,7 +189,9 @@ def generate_video(reciter, surah, start, end, directory, hd=False, clean_resour
                  width= size[0],
                  height= size[1],
                  hd= hd)
-    
+    except Exception as e:
+        status_updater.set_status_unnamed_failure(e.args[0])
+        exit(0)
     duration =  time.time() - sttime
     if(verbose): print(f"Took {duration:.2f} s\n")
     if(monitor_performance): monitor_performance_file.write(f"({status_updater.get_status().value}) {duration};")    
