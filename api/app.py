@@ -81,7 +81,7 @@ def get_job_status_request():
         
         elif job_status["status"] == InternalStatus.UNAMED_FAILURE:
             logging.error(f"Internal Error: {job_status['message']}")
-            return jsonify({"status": APIStatus.FAILED, "message": "Job status retrieval failed"})
+            return jsonify({"status": APIStatus.FAILED, "message": "Job failed. Try Again."})
 
         elif job_status["status"] == InternalStatus.COMPLETED:
             resource_url = f"/{VERSION}/download?id={job_id}"
