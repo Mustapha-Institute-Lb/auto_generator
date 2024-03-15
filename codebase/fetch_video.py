@@ -1,10 +1,7 @@
 import json, os, logging, time
 from random import randint
 from codebase.utils import download_file, request_json
-
-class MaintainableFetchError(Exception):
-    """Custom exception class."""
-    pass
+from codebase.exceptions import NamedError
 
 def get_index_smallest_larger_size(of_width, of_height, sizes):
   """
@@ -75,9 +72,9 @@ def get_pexeles_video(keyword, width, height):
   query = base_query + keyword
   data = request_json(query, headers= {'Authorization': api_key})
   if(not data):
-    print("Problem fetching video:\n\
-            (1) Check your network connection")
-    exit()
+    error_message = "Problem fetching video"
+    logging.error(error_message)
+    raise NamedError(error_message)
   total_videos = data["total_results"]
   total_pages = total_videos//per_page
 
@@ -88,8 +85,10 @@ def get_pexeles_video(keyword, width, height):
   query = base_query + keyword + "&page="+ str(page) +"&per_page=" + str(per_page)
   data = request_json(query, headers= {'Authorization': api_key})
   if(not data):
-    logging.error("Problem fetching video:\n (1) Check your network connection")
-    exit()
+    error_message = "Problem fetching video"
+    logging.error(error_message)
+    raise NamedError(error_message)
+  
   video = data["videos"][0]
 
   logging.info(f"Fetched video descriptor: {video['url']}")
@@ -193,8 +192,9 @@ def download_videos(videos_links, destination, verbose=True):
     sttime = time.time()
     succsess = download_file(link, file_path)
     if verbose: print(f"{time.time()-sttime:.2f} s")
-    if not succsess: 
-      logging.error("Problem downloading video:\n (1) Check your network connection")
-      exit()
+    if not succsess:
+      error_message = "Problem downloading video"
+      logging.error(error_message)
+      raise NamedError(error_message)
     videos_files+= [file_path]
   return videos_files

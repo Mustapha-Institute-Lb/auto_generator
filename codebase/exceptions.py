@@ -2,7 +2,7 @@ class InternalError(Exception):
     """Custom exception class."""
     pass
 
-class FetchError(InternalError):
+class NamedError(InternalError):
     """Custom exception class."""
     pass
 

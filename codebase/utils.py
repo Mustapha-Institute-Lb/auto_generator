@@ -13,11 +13,7 @@ def request_json(url, headers= {}):
 
     if response.status_code == 200:
         return json.loads(response.content)
-    
-    elif response.status_code == 404: 
-        logging.error(f"Error: The requested resource doesn't exist. Status code: {response.status_code}")
-        logging.info(f"Requested resource: {url}")
-        return ""
+
     else:
         logging.error(f"Error: Unable to fetch resource. Status code: {response.status_code}")
         logging.info(f"Requested resource: {url}")

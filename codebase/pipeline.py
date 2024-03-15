@@ -1,7 +1,7 @@
 from codebase import fetch_audio, fetch_video, ffmpeg_utils
 from codebase.utils import remove_directory
 from codebase.status import StatusUpdater
-from codebase.exceptions import FetchError, InternalError
+from codebase.exceptions import NamedError
 from codebase.composer import compose_video
 import os, time, datetime
 from enum import Enum
@@ -64,7 +64,7 @@ def generate_video(reciter, surah, start, end, directory, hd=False, clean_resour
 
     try:
         audios = fetch_audio.get_recitations(reciter, surah, start, end)
-    except FetchError as e:
+    except NamedError as e:
         status_updater.set_status_named_failure(e.args[0])
         exit(0)
     except Exception as e:
@@ -87,7 +87,7 @@ def generate_video(reciter, surah, start, end, directory, hd=False, clean_resour
     try:
         recitations_files = fetch_audio.download_recitations([r["audio_link"] for r in recitations],\
                                                           os.path.join(temp_dir, audio_dir), verbose)
-    except FetchError as e:
+    except NamedError as e:
         status_updater.set_status_named_failure(e.args[0])
         exit(0)
     except Exception as e:

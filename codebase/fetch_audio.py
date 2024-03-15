@@ -1,6 +1,6 @@
 import requests, json, os, logging, time
-from codebase.utils import download_file
-from codebase.exceptions import FetchError
+from codebase.utils import download_file, request_json
+from codebase.exceptions import NamedError
 
 import warnings
 warnings.filterwarnings("ignore", category=RuntimeWarning, module="pydub")
@@ -20,8 +20,7 @@ def get_reciters(with_code=True):
         Result: [{'id': 1, 'name': 'عبد الباسط عبد الصمد المرتل', 'code': 'ar.abdulbasitmurattal'},
                  {'id': 2, 'name': 'عبد الله بصفر', 'code': 'ar.abdullahbasfar'}, ...]
   """
-  response = requests.get("https://api.alquran.cloud/v1/edition/format/audio")
-  content = json.loads(response.content.decode('utf8').replace("'", '"'))
+  content = request_json("https://api.alquran.cloud/v1/edition/format/audio")
   reciters = []
   id=1
   for reciter in content["data"]:
@@ -51,8 +50,7 @@ def get_surahs(with_base=True):
         Result: [{'id': 1, 'name': 'سُورَةُ ٱلْفَاتِحَةِ', 'aya_base': 0, 'n_aya': 7},
                  {'id': 2, 'name': 'سُورَةُ البَقَرَةِ', 'aya_base': 7, 'n_aya': 286}, ...]
     """
-  response = requests.get("https://api.alquran.cloud/v1/meta")
-  content = json.loads(response.content)
+  content = request_json("https://api.alquran.cloud/v1/meta")
   surahs = []
   id=1
   aya_base= 0
@@ -105,12 +103,12 @@ def get_recitations(reciter_number, surah_number, start, end):
   if reciter_number > len(reciters):
     error_message = f"Reciter id ({reciter_number}) should be between (1, {len(reciters)})"
     logging.error(error_message)
-    raise FetchError(error_message)
+    raise NamedError(error_message)
   
   if surah_number > len(surahs):
     error_message = f"Surah id ({surah_number}) should be between (1, {len(surahs)})"
     logging.error(error_message)
-    raise FetchError(error_message)
+    raise NamedError(error_message)
 
   reciter = [reciter for reciter in get_reciters() if reciter["id"] == reciter_number][0]
 
@@ -119,15 +117,15 @@ def get_recitations(reciter_number, surah_number, start, end):
   if end > surah["n_aya"]:
     message = f"For {surah['name']} end aya ({end}) should be less than ({surah['n_aya']})"
     logging.error(message)
-    raise FetchError(message)
+    raise NamedError(message)
   if start < 1:
     message = f"Start aya ({start}) can't be less than one"
     logging.error(message)
-    raise FetchError(message)
+    raise NamedError(message)
   if end < start:
     message= f"End aya ({end}) can't be less than start aya ({start})"
     logging.error(message)
-    raise FetchError(message)
+    raise NamedError(message)
   
   # from aya number per surah to aya number per quran
   required_ayat= []
@@ -144,11 +142,14 @@ def get_recitations(reciter_number, surah_number, start, end):
   for i, aya in enumerate(required_ayat):
     audio_link = "https://cdn.islamic.network/quran/audio/192/" + str(reciter["code"]) + "/" + str(aya) + ".mp3"
     logging.info(f"Getting recitation {audio_link}")
-    text_response = requests.get("https://api.alquran.cloud/v1/ayah/" + str(aya))
-    if(text_response.status_code == 200):
-      text = json.loads(text_response.content.decode('utf8').replace("'", '"'))["data"]["text"]
-    else:
-      raise FetchError(f"Error in fetching text of aya number {str(aya)}")
+    text_response = request_json(f"https://api.alquran.cloud/v1/ayah/{str(aya)}")
+    
+    if(not text_response):
+      error_message = f"Error in fetching text of aya number {str(aya)}"
+      logging.error(error_message)
+      raise NamedError(error_message)
+    
+    text = text_response["data"]["text"]
     if(i==0 and remove_bismillah):
       text = text.replace("بِسۡمِ ٱللَّهِ ٱلرَّحۡمَـٰنِ ٱلرَّحِیمِ", "")
     recitations+= [{"text": text.strip(), "audio_link": audio_link}]
@@ -189,7 +190,7 @@ def download_recitations(recitations, destination, verbose=True):
     if not succsess:
       error_message = f"No recitation available change reciter"
       logging.error(error_message)
-      raise FetchError(error_message)
+      raise NamedError(error_message)
     audios+= [file_path]
   return audios
 
