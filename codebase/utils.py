@@ -5,7 +5,7 @@ user_agent = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:106.0)
 
 def request_json(url, headers= {}):
     headers = headers.update(user_agent)
-
+    logging.info(f"Request: {url} \n Headers: {headers}")
     try:
         response = requests.get(url, headers= headers)
     except Exception as e:
@@ -21,6 +21,7 @@ def request_json(url, headers= {}):
 
 def download_file(url, filename, headers= {}):
     headers = headers.update(user_agent)
+    logging.info(f"Request: {url} \n Headers: {headers}")
 
     try:
         response = requests.get(url, headers= headers)

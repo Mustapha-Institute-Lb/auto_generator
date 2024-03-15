@@ -74,7 +74,7 @@ def get_pexeles_video(keyword, width, height):
   if(not data):
     error_message = "Problem fetching video"
     logging.error(error_message)
-    raise NamedError(error_message)
+    raise Exception(error_message)
   total_videos = data["total_results"]
   total_pages = total_videos//per_page
 
@@ -87,7 +87,7 @@ def get_pexeles_video(keyword, width, height):
   if(not data):
     error_message = "Problem fetching video"
     logging.error(error_message)
-    raise NamedError(error_message)
+    raise Exception(error_message)
   
   video = data["videos"][0]
 
@@ -195,6 +195,6 @@ def download_videos(videos_links, destination, verbose=True):
     if not succsess:
       error_message = "Problem downloading video"
       logging.error(error_message)
-      raise NamedError(error_message)
+      raise Exception(error_message)
     videos_files+= [file_path]
   return videos_files
