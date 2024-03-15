@@ -1,9 +1,19 @@
 import os, requests, json, logging
 
+
+user_agent = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:106.0) Gecko/20100101 Firefox/106.0'}
+
 def request_json(url, headers= {}):
-    response = requests.get(url, headers= headers)
+    headers = headers.update(user_agent)
+
+    try:
+        response = requests.get(url, headers= headers)
+    except Exception as e:
+        logging.error(f"Error: Unable to download file. error: {e}")
+
     if response.status_code == 200:
         return json.loads(response.content)
+    
     elif response.status_code == 404: 
         logging.error(f"Error: The requested resource doesn't exist. Status code: {response.status_code}")
         logging.info(f"Requested resource: {url}")
@@ -13,8 +23,14 @@ def request_json(url, headers= {}):
         logging.info(f"Requested resource: {url}")
         return ""
 
-def download_file(url, filename):
-    response = requests.get(url)
+def download_file(url, filename, headers= {}):
+    headers = headers.update(user_agent)
+
+    try:
+        response = requests.get(url, headers= headers)
+    except Exception as e:
+        logging.error(f"Error: Unable to download file. error: {e}")
+
     if response.status_code == 200:
         with open(filename, 'wb') as file:
             file.write(response.content)

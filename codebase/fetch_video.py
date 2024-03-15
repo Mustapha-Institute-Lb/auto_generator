@@ -88,8 +88,7 @@ def get_pexeles_video(keyword, width, height):
   query = base_query + keyword + "&page="+ str(page) +"&per_page=" + str(per_page)
   data = request_json(query, headers= {'Authorization': api_key})
   if(not data):
-    print("Problem fetching video:\n\
-            (1) Check your network connection")
+    logging.error("Problem fetching video:\n (1) Check your network connection")
     exit()
   video = data["videos"][0]
 
@@ -195,8 +194,7 @@ def download_videos(videos_links, destination, verbose=True):
     succsess = download_file(link, file_path)
     if verbose: print(f"{time.time()-sttime:.2f} s")
     if not succsess: 
-      logging.error("Problem downloading video:\n\
-             (1) Check your network connection")
+      logging.error("Problem downloading video:\n (1) Check your network connection")
       exit()
     videos_files+= [file_path]
   return videos_files
