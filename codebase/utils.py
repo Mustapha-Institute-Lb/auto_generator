@@ -1,11 +1,10 @@
 import os, requests, json, logging
 
-
-user_agent = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:106.0) Gecko/20100101 Firefox/106.0'}
+USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:106.0) Gecko/20100101 Firefox/106.0'
 
 def request_json(url, headers= {}):
-    headers = headers.update(user_agent)
-    logging.info(f"Request: {url} \n Headers: {headers}")
+    headers["user_agent"] = USER_AGENT
+    logging.info(f"Request: {url} Headers: {headers}")
     try:
         response = requests.get(url, headers= headers)
     except Exception as e:
@@ -20,8 +19,8 @@ def request_json(url, headers= {}):
         return ""
 
 def download_file(url, filename, headers= {}):
-    headers = headers.update(user_agent)
-    logging.info(f"Request: {url} \n Headers: {headers}")
+    headers["user_agent"] = USER_AGENT
+    logging.info(f"Request: {url} Headers: {headers}")
 
     try:
         response = requests.get(url, headers= headers)
